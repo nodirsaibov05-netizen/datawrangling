@@ -167,39 +167,39 @@ if page == "A. Upload & Overview":
         ext = uploaded_file.name.split('.')[-1].lower()
         original_name = uploaded_file.name
 
-            try:
-                       with st.spinner(f"Reading file {original_name} ..."):
+        try:
+                    with st.spinner(f"Reading file {original_name} ..."):
 
-                            if ext == "csv":
-                                encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
-                                df = None
-                                error_msg = ""
-                                for enc in encodings:
-                                    try:
-                                        uploaded_file.seek(0)  # Reset file pointer to the beginning
-                                        df = pd.read_csv(uploaded_file, encoding=enc)
-                                        st.info(f"Successfully read with encoding: {enc}")
-                                        break
-                                    except UnicodeDecodeError as e:
-                                        error_msg = str(e)
-                                        continue
-                    
-                                if df is None:
-                                 st.error(f"Could not read CSV with any encoding.\nLast error: {error_msg}")
-                                 st.stop()
-
-                            elif ext == "xlsx":
-                                df = pd.read_excel(uploaded_file, engine="openpyxl")
-
-                            elif ext == "json":
+                        if ext == "csv":
+                            encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
+                            df = None
+                            error_msg = ""
+                            for enc in encodings:
                                 try:
-                                    df = pd.read_json(uploaded_file, orient="records")
-                                except ValueError:
-                                    df = pd.read_json(uploaded_file, orient="columns")
-
-                            else:
-                                st.error("Unsupported file format.")
+                                    uploaded_file.seek(0)  # Reset file pointer to the beginning
+                                    df = pd.read_csv(uploaded_file, encoding=enc)
+                                    st.info(f"Successfully read with encoding: {enc}")
+                                    break
+                                except UnicodeDecodeError as e:
+                                    error_msg = str(e)
+                                    continue
+                    
+                            if df is None:
+                                st.error(f"Could not read CSV with any encoding.\nLast error: {error_msg}")
                                 st.stop()
+
+                        elif ext == "xlsx":
+                            df = pd.read_excel(uploaded_file, engine="openpyxl")
+
+                        elif ext == "json":
+                            try:
+                                df = pd.read_json(uploaded_file, orient="records")
+                            except ValueError:
+                                df = pd.read_json(uploaded_file, orient="columns")
+
+                        else:
+                            st.error("Unsupported file format.")
+                            st.stop()
 
             # After successful reading — save to session state
             st.session_state.df_original = df.copy()
