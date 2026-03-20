@@ -167,44 +167,46 @@ if page == "A. Upload & Overview":
         ext = uploaded_file.name.split('.')[-1].lower()
         original_name = uploaded_file.name
 
-        try:
-            with st.spinner(f"Reading file {original_name} ..."):
+            try:
+                       with st.spinner(f"Reading file {original_name} ..."):
 
-     if ext == "csv":
-    encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
-    df = None
-    error_msg = ""
-    for enc in encodings:
-        try:
-            uploaded_file.seek(0)  # важно! возвращаем указатель в начало файла
-            df = pd.read_csv(uploaded_file, encoding=enc)
-            st.info(f"Успешно прочитано с кодировкой: {enc}")
-            break
-        except UnicodeDecodeError as e:
-            error_msg = str(e)
-            continue
-    if df is None:
-        st.error(f"Не удалось прочитать CSV ни с одной кодировкой.\nПоследняя ошибка: {error_msg}")
-        st.stop()
-                elif ext == "xlsx":
-                    df = pd.read_excel(uploaded_file, engine="openpyxl")
-                elif ext == "json":
-                    # Try common orientations
-                    try:
-                        df = pd.read_json(uploaded_file, orient="records")
-                    except:
-                        df = pd.read_json(uploaded_file, orient="columns")
-                else:
-                    st.error("Unsupported file format.")
-                    st.stop()
+                            if ext == "csv":
+                                encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
+                                df = None
+                                error_msg = ""
+                                for enc in encodings:
+                                    try:
+                                        uploaded_file.seek(0)  # Reset file pointer to the beginning
+                                        df = pd.read_csv(uploaded_file, encoding=enc)
+                                        st.info(f"Successfully read with encoding: {enc}")
+                                        break
+                                    except UnicodeDecodeError as e:
+                                        error_msg = str(e)
+                                        continue
+                    
+                                if df is None:
+                                 st.error(f"Could not read CSV with any encoding.\nLast error: {error_msg}")
+                                 st.stop()
 
-            # Save to session state only if it's a new upload
-            if "df_original" not in st.session_state or st.session_state.get("last_uploaded_name") != original_name:
-                st.session_state.df_original = df.copy()
-                st.session_state.df_working = df.copy()
-                st.session_state.transform_log = []
-                st.session_state.last_uploaded_name = original_name
-                st.session_state.file_uploaded_at = pd.Timestamp.now()
+                            elif ext == "xlsx":
+                                df = pd.read_excel(uploaded_file, engine="openpyxl")
+
+                            elif ext == "json":
+                                try:
+                                    df = pd.read_json(uploaded_file, orient="records")
+                                except ValueError:
+                                    df = pd.read_json(uploaded_file, orient="columns")
+
+                            else:
+                                st.error("Unsupported file format.")
+                                st.stop()
+
+            # After successful reading — save to session state
+            st.session_state.df_original = df.copy()
+            st.session_state.df_working = df.copy()
+            st.session_state.transform_log = []
+            st.session_state.last_uploaded_name = original_name
+            st.session_state.file_uploaded_at = pd.Timestamp.now()
 
             st.success(f"File successfully loaded: **{original_name}**")
 
