@@ -170,23 +170,22 @@ if page == "A. Upload & Overview":
         try:
             with st.spinner(f"Reading file {original_name} ..."):
 
-    
-    if ext == "csv":
-        encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
-        df = None
-        error_msg = ""
-        for enc in encodings:
-          try:
-              uploaded_file.seek(0)  # важно! возвращаем указатель в начало файла
-              df = pd.read_csv(uploaded_file, encoding=enc)
-              st.info(f"Успешно прочитано с кодировкой: {enc}")
-              break
-         except UnicodeDecodeError as e:
-              error_msg = str(e)
-              continue
-         if df is None:
-               st.error(f"Не удалось прочитать CSV ни с одной кодировкой.\nПоследняя ошибка: {error_msg}")
-               st.stop()
+     if ext == "csv":
+    encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
+    df = None
+    error_msg = ""
+    for enc in encodings:
+        try:
+            uploaded_file.seek(0)  # важно! возвращаем указатель в начало файла
+            df = pd.read_csv(uploaded_file, encoding=enc)
+            st.info(f"Успешно прочитано с кодировкой: {enc}")
+            break
+        except UnicodeDecodeError as e:
+            error_msg = str(e)
+            continue
+    if df is None:
+        st.error(f"Не удалось прочитать CSV ни с одной кодировкой.\nПоследняя ошибка: {error_msg}")
+        st.stop()
                 elif ext == "xlsx":
                     df = pd.read_excel(uploaded_file, engine="openpyxl")
                 elif ext == "json":
