@@ -50,101 +50,264 @@ if st.sidebar.button("🔄 Reset everything", type="primary"):
 # ────────────────────────────────────────────────
 #  Page A — Upload & Overview
 # ────────────────────────────────────────────────
+#if page == "A. Upload & Overview":
+
+    # st.title("Upload & Data Overview")
+
+    # uploaded_file = st.file_uploader(
+    #     "Upload your dataset (CSV, Excel, JSON)",
+    #     type=["csv", "xlsx", "xls", "json"],
+    #     accept_multiple_files=False
+    # )
+
+    # if uploaded_file is not None:
+
+    #     file_ext = uploaded_file.name.split(".")[-1].lower()
+    #     st.session_state.file_name = uploaded_file.name
+
+    #     try:
+    #         with st.spinner("Loading file..."):
+    #             if file_ext in ["csv"]:
+    #                 df = pd.read_csv(uploaded_file)
+    #             elif file_ext in ["xlsx", "xls"]:
+    #                 df = pd.read_excel(uploaded_file)
+    #             elif file_ext == "json":
+    #                 df = pd.read_json(uploaded_file)
+    #             else:
+    #                 st.error("Unsupported file format.")
+    #                 st.stop()
+
+    #         # Сохраняем копии
+    #         st.session_state.df_original = df.copy()
+    #         st.session_state.df_working = df.copy()
+    #         st.session_state.transform_log = []
+
+    #         st.success(f"File loaded: **{uploaded_file.name}**  •  {df.shape[0]:,} rows × {df.shape[1]} columns")
+
+    #     except Exception as e:
+    #         st.error(f"Error reading file: {e}")
+    #         st.stop()
+
+    # # Если данные уже загружены — показываем обзор
+    # if st.session_state.df_working is not None:
+    #     df = st.session_state.df_working
+
+    #     col1, col2, col3, col4 = st.columns(4)
+    #     col1.metric("Rows", f"{df.shape[0]:,}")
+    #     col2.metric("Columns", df.shape[1])
+    #     col3.metric("File", st.session_state.file_name)
+    #     col4.metric("Last update", datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+
+    #     tab1, tab2, tab3, tab4 = st.tabs(["Columns & Types", "Summary Stats", "Missing Values", "Duplicates"])
+
+    #     with tab1:
+    #         st.subheader("Columns and inferred types")
+    #         dtypes_df = pd.DataFrame({
+    #             "Column": df.columns,
+    #             "Dtype": df.dtypes.astype(str),
+    #             "Non-null count": df.notna().sum(),
+    #             "Non-null %": (df.notna().mean() * 100).round(1).astype(str) + " %"
+    #         })
+    #         st.dataframe(dtypes_df, use_container_width=True, hide_index=True)
+
+    #     with tab2:
+    #         st.subheader("Numeric summary")
+    #         st.dataframe(df.describe().round(2), use_container_width=True)
+
+    #         st.subheader("Categorical / object summary")
+    #         cat_cols = df.select_dtypes(include=["object", "category"]).columns
+    #         if len(cat_cols) > 0:
+    #             for c in cat_cols[:6]:  # лимит, чтобы не перегружать
+    #                 st.write(f"**{c}** — top values")
+    #                 st.write(df[c].value_counts().head(8))
+    #         else:
+    #             st.info("No categorical columns detected.")
+
+    #     with tab3:
+    #         st.subheader("Missing values")
+    #         miss = pd.DataFrame({
+    #             "Column": df.columns,
+    #             "Missing count": df.isna().sum(),
+    #             "Missing %": (df.isna().mean() * 100).round(2).astype(str) + " %"
+    #         }).sort_values("Missing count", ascending=False)
+    #         miss["Missing % (num)"] = (df.isna().mean() * 100).round(2)
+    #         st.dataframe(miss.style.bar(subset="Missing % (num)", color="#ff9800"), use_container_width=True, hide_index=True)
+
+    #         total_miss = df.isna().sum().sum()
+    #         st.metric("Total missing cells", total_miss, delta=f"{total_miss / df.size * 100:.1f}% of all cells")
+
+    #     with tab4:
+    #         st.subheader("Duplicate rows")
+    #         dup_count = df.duplicated().sum()
+    #         st.metric("Full row duplicates", dup_count, delta_color="inverse" if dup_count > 0 else "normal")
+
+    #         if dup_count > 0:
+    #             if st.button("Show first 5 duplicate rows"):
+    #                 st.dataframe(df[df.duplicated(keep=False)].head(10))
+
 if page == "A. Upload & Overview":
 
-    st.title("Upload & Data Overview")
+    st.title("A. Upload & Data Overview")
 
+    st.markdown(
+        "Upload your file in one of the following formats: **CSV**, **Excel (.xlsx)** or **JSON**.\n"
+        "For coursework requirements, datasets should ideally have ≥ 1000 rows and ≥ 8 columns."
+    )
+
+    # File uploader — only required formats
     uploaded_file = st.file_uploader(
-        "Upload your dataset (CSV, Excel, JSON)",
-        type=["csv", "xlsx", "xls", "json"],
-        accept_multiple_files=False
+        "Choose a file",
+        type=["csv", "xlsx", "json"],
+        accept_multiple_files=False,
+        help="Supported formats: .csv, .xlsx, .json"
     )
 
     if uploaded_file is not None:
 
-        file_ext = uploaded_file.name.split(".")[-1].lower()
-        st.session_state.file_name = uploaded_file.name
+        ext = uploaded_file.name.split('.')[-1].lower()
+        original_name = uploaded_file.name
 
         try:
-            with st.spinner("Loading file..."):
-                if file_ext in ["csv"]:
+            with st.spinner(f"Reading file {original_name} ..."):
+
+                if ext == "csv":
                     df = pd.read_csv(uploaded_file)
-                elif file_ext in ["xlsx", "xls"]:
-                    df = pd.read_excel(uploaded_file)
-                elif file_ext == "json":
-                    df = pd.read_json(uploaded_file)
+                elif ext == "xlsx":
+                    df = pd.read_excel(uploaded_file, engine="openpyxl")
+                elif ext == "json":
+                    # Try common orientations
+                    try:
+                        df = pd.read_json(uploaded_file, orient="records")
+                    except:
+                        df = pd.read_json(uploaded_file, orient="columns")
                 else:
                     st.error("Unsupported file format.")
                     st.stop()
 
-            # Сохраняем копии
-            st.session_state.df_original = df.copy()
-            st.session_state.df_working = df.copy()
-            st.session_state.transform_log = []
+            # Save to session state only if it's a new upload
+            if "df_original" not in st.session_state or st.session_state.get("last_uploaded_name") != original_name:
+                st.session_state.df_original = df.copy()
+                st.session_state.df_working = df.copy()
+                st.session_state.transform_log = []
+                st.session_state.last_uploaded_name = original_name
+                st.session_state.file_uploaded_at = pd.Timestamp.now()
 
-            st.success(f"File loaded: **{uploaded_file.name}**  •  {df.shape[0]:,} rows × {df.shape[1]} columns")
+            st.success(f"File successfully loaded: **{original_name}**")
 
         except Exception as e:
-            st.error(f"Error reading file: {e}")
+            st.error(f"Failed to read the file.\n\n{str(e)}")
+            st.info(
+                "Possible reasons:\n"
+                "• File is corrupted\n"
+                "• Wrong encoding (for CSV try UTF-8)\n"
+                "• JSON is not in tabular format"
+            )
             st.stop()
 
-    # Если данные уже загружены — показываем обзор
-    if st.session_state.df_working is not None:
+    # ── Show overview if data is present in session ───────────────────────────────
+    if st.session_state.get("df_working") is not None:
+
         df = st.session_state.df_working
 
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Rows", f"{df.shape[0]:,}")
-        col2.metric("Columns", df.shape[1])
-        col3.metric("File", st.session_state.file_name)
-        col4.metric("Last update", datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+        # Top metrics row — always show number of columns
+        cols = st.columns([2, 2, 2, 2, 3])
+        cols[0].metric("Rows", f"{df.shape[0]:,}")
+        cols[1].metric("Columns", df.shape[1])
+        cols[2].metric("Missing cells", df.isna().sum().sum())
+        cols[3].metric("Full duplicates", df.duplicated().sum())
+        cols[4].metric("Uploaded", st.session_state.file_uploaded_at.strftime("%Y-%m-%d %H:%M"))
 
-        tab1, tab2, tab3, tab4 = st.tabs(["Columns & Types", "Summary Stats", "Missing Values", "Duplicates"])
+        # Tabs for detailed profiling
+        tab_overview, tab_numeric, tab_categorical, tab_missing, tab_duplicates = st.tabs([
+            "Column Overview",
+            "Numeric Statistics",
+            "Categorical",
+            "Missing Values",
+            "Duplicates"
+        ])
 
-        with tab1:
-            st.subheader("Columns and inferred types")
-            dtypes_df = pd.DataFrame({
+        with tab_overview:
+            st.subheader("Columns and Data Types")
+            overview_df = pd.DataFrame({
                 "Column": df.columns,
-                "Dtype": df.dtypes.astype(str),
-                "Non-null count": df.notna().sum(),
-                "Non-null %": (df.notna().mean() * 100).round(1).astype(str) + " %"
+                "Data Type": df.dtypes.astype(str),
+                "Unique Values": df.nunique(),
+                "Non-Null Count": df.notna().sum(),
+                "% Filled": (df.notna().mean() * 100).round(1)
             })
-            st.dataframe(dtypes_df, use_container_width=True, hide_index=True)
+            st.dataframe(
+                overview_df.style.format({"% Filled": "{:.1f} %"}),
+                use_container_width=True,
+                hide_index=True
+            )
 
-        with tab2:
-            st.subheader("Numeric summary")
-            st.dataframe(df.describe().round(2), use_container_width=True)
+            if df.shape[0] < 1000 or df.shape[1] < 8:
+                st.warning(
+                    f"Current dataset has {df.shape[0]:,} rows and {df.shape[1]} columns.\n"
+                    "Coursework recommends ≥ 1000 rows and ≥ 8 columns."
+                )
 
-            st.subheader("Categorical / object summary")
-            cat_cols = df.select_dtypes(include=["object", "category"]).columns
-            if len(cat_cols) > 0:
-                for c in cat_cols[:6]:  # лимит, чтобы не перегружать
-                    st.write(f"**{c}** — top values")
-                    st.write(df[c].value_counts().head(8))
-            else:
+        with tab_numeric:
+            st.subheader("Numeric Columns Statistics")
+            num_stats = df.describe(percentiles=[0.25, 0.5, 0.75, 0.9, 0.95]).round(2).T
+            st.dataframe(num_stats, use_container_width=True)
+
+        with tab_categorical:
+            st.subheader("Categorical / Text Columns")
+            cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+
+            if not cat_cols:
                 st.info("No categorical columns detected.")
+            else:
+                selected_cat = st.selectbox("Select column to inspect", cat_cols)
+                if selected_cat:
+                    vc = df[selected_cat].value_counts(dropna=False).head(15).reset_index()
+                    vc.columns = [selected_cat, "Count"]
+                    vc["%"] = (vc["Count"] / len(df) * 100).round(1)
+                    st.dataframe(vc, hide_index=True, use_container_width=True)
 
-        with tab3:
-            st.subheader("Missing values")
-            miss = pd.DataFrame({
+        with tab_missing:
+            st.subheader("Missing Values by Column")
+            miss_df = pd.DataFrame({
                 "Column": df.columns,
-                "Missing count": df.isna().sum(),
-                "Missing %": (df.isna().mean() * 100).round(2).astype(str) + " %"
-            }).sort_values("Missing count", ascending=False)
-            miss["Missing % (num)"] = (df.isna().mean() * 100).round(2)
-            st.dataframe(miss.style.bar(subset="Missing % (num)", color="#ff9800"), use_container_width=True, hide_index=True)
+                "Missing Count": df.isna().sum(),
+                "% Missing": (df.isna().mean() * 100).round(2)
+            })
+            miss_df = miss_df[miss_df["Missing Count"] > 0].sort_values("Missing Count", ascending=False)
 
-            total_miss = df.isna().sum().sum()
-            st.metric("Total missing cells", total_miss, delta=f"{total_miss / df.size * 100:.1f}% of all cells")
+            if miss_df.empty:
+                st.success("No missing values found — great!")
+            else:
+                st.dataframe(
+                    miss_df.style
+                       .format({"% Missing": "{:.2f} %"})
+                       .bar(subset=["% Missing"], color="#ff9800", vmin=0, vmax=100),
+                    use_container_width=True,
+                    hide_index=True
+                )
 
-        with tab4:
-            st.subheader("Duplicate rows")
+        with tab_duplicates:
+            st.subheader("Full Row Duplicates")
             dup_count = df.duplicated().sum()
-            st.metric("Full row duplicates", dup_count, delta_color="inverse" if dup_count > 0 else "normal")
+            st.metric("Number of duplicate rows", dup_count)
 
             if dup_count > 0:
-                if st.button("Show first 5 duplicate rows"):
-                    st.dataframe(df[df.duplicated(keep=False)].head(10))
+                if st.button("Show sample duplicate rows (first 8)"):
+                    st.dataframe(
+                        df[df.duplicated(keep=False)].head(8),
+                        use_container_width=True
+                    )
 
+        st.divider()
+
+        # Data preview button
+        if st.button("Show first 500 rows (preview)"):
+            st.dataframe(df.head(500), use_container_width=True)
+
+    else:
+        st.info("No data loaded yet. Upload a file above.")
+
+    st.caption("Full session reset button is available in the sidebar → «Reset everything»")
 # ────────────────────────────────────────────────
 #  Page B — Cleaning & Preparation (начало)
 # ────────────────────────────────────────────────
