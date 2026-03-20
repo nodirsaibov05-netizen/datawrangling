@@ -202,13 +202,13 @@ if page == "A. Upload & Overview":
                             st.stop()
 
         # After successful reading — save to session state
-            st.session_state.df_original = df.copy()
-            st.session_state.df_working = df.copy()
-            st.session_state.transform_log = []
-            st.session_state.last_uploaded_name = original_name
-            st.session_state.file_uploaded_at = pd.Timestamp.now()
+                    st.session_state.df_original = df.copy()
+                    st.session_state.df_working = df.copy()
+                    st.session_state.transform_log = []
+                    st.session_state.last_uploaded_name = original_name
+                    st.session_state.file_uploaded_at = pd.Timestamp.now()
 
-            st.success(f"File successfully loaded: **{original_name}**")
+                    st.success(f"File successfully loaded: **{original_name}**")
 
         except Exception as e:
             st.error(f"Failed to read the file.\n\n{str(e)}")
