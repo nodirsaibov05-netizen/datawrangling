@@ -154,71 +154,142 @@ if page == "A. Upload & Overview":
         "For coursework requirements, datasets should ideally have ≥ 1000 rows and ≥ 8 columns."
     )
 
-    # File uploader — only required formats
-    uploaded_file = st.file_uploader(
-        "Choose a file",
-        type=["csv", "xlsx", "json"],
-        accept_multiple_files=False,
-        help="Supported formats: .csv, .xlsx, .json"
-    )
 
-    if uploaded_file is not None:
+    separator = st.selectbox(
+    "CSV delimiter (separator)",
+    options=[", (comma)", "; (semicolon)", "\\t (tab)", "| (pipe)", "space"],
+    index=1,  # по умолчанию semicolon, потому что у тебя именно он
+    help="Choose the character that separates columns in your CSV file"
+)
 
-        ext = uploaded_file.name.split('.')[-1].lower()
-        original_name = uploaded_file.name
+sep_map = {
+    ", (comma)": ",",
+    "; (semicolon)": ";",
+    "\\t (tab)": "\t",
+    "| (pipe)": "|",
+    "space": " "
+}
 
-        try:
-                    with st.spinner(f"Reading file {original_name} ..."):
+selected_sep = sep_map[separator]
 
-                        if ext == "csv":
-                            encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
-                            df = None
-                            error_msg = ""
-                            for enc in encodings:
-                                try:
-                                    uploaded_file.seek(0)  # Reset file pointer to the beginning
-                                    df = pd.read_csv(uploaded_file, encoding=enc)
-                                    st.info(f"Successfully read with encoding: {enc}")
-                                    break
-                                except UnicodeDecodeError as e:
-                                    error_msg = str(e)
-                                    continue
+uploaded_file = st.file_uploader(
+    "Choose a file",
+    type=["csv", "xlsx", "json"],
+    help="Supported: .csv, .xlsx, .json"
+)
+
+if uploaded_file is not None:
+    ext = uploaded_file.name.split('.')[-1].lower()
+    original_name = uploaded_file.name
+
+    try:
+        with st.spinner(f"Reading {original_name} ..."):
+
+            if ext == "csv":
+                encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
+                df = None
+                for enc in encodings:
+                    try:
+                        uploaded_file.seek(0)
+                        df = pd.read_csv(
+                            uploaded_file,
+                            encoding=enc,
+                            sep=selected_sep,                # ← вот ключевой параметр
+                            on_bad_lines='skip',
+                            decimal=','                      # если в числах запятая как десятичный разделитель
+                        )
+                        st.info(f"Success with encoding: {enc}, separator: {separator}")
+                        break
+                    except Exception as e:
+                        pass  # продолжаем пробовать
+
+                if df is None:
+                    st.error("Could not read CSV — try different separator or encoding.")
+                    st.stop()
+
+            elif ext == "xlsx":
+                df = pd.read_excel(uploaded_file, engine="openpyxl")
+
+            elif ext == "json":
+                df = pd.read_json(uploaded_file)
+
+        # Сохранение
+        st.session_state.df_original = df.copy()
+        st.session_state.df_working = df.copy()
+        st.session_state.transform_log = []
+        st.session_state.last_uploaded_name = original_name
+        st.session_state.file_uploaded_at = pd.Timestamp.now()
+
+        st.success(f"File loaded: **{original_name}** ({df.shape[0]} rows × {df.shape[1]} cols)")
+
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
+
+    # # File uploader — only required formats
+    # uploaded_file = st.file_uploader(
+    #     "Choose a file",
+    #     type=["csv", "xlsx", "json"],
+    #     accept_multiple_files=False,
+    #     help="Supported formats: .csv, .xlsx, .json"
+    # )
+
+    # if uploaded_file is not None:
+
+    #     ext = uploaded_file.name.split('.')[-1].lower()
+    #     original_name = uploaded_file.name
+
+    #     try:
+    #                 with st.spinner(f"Reading file {original_name} ..."):
+
+    #                     if ext == "csv":
+    #                         encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
+    #                         df = None
+    #                         error_msg = ""
+    #                         for enc in encodings:
+    #                             try:
+    #                                 uploaded_file.seek(0)  # Reset file pointer to the beginning
+    #                                 df = pd.read_csv(uploaded_file, encoding=enc)
+    #                                 st.info(f"Successfully read with encoding: {enc}")
+    #                                 break
+    #                             except UnicodeDecodeError as e:
+    #                                 error_msg = str(e)
+    #                                 continue
                     
-                            if df is None:
-                                st.error(f"Could not read CSV with any encoding.\nLast error: {error_msg}")
-                                st.stop()
+    #                         if df is None:
+    #                             st.error(f"Could not read CSV with any encoding.\nLast error: {error_msg}")
+    #                             st.stop()
 
-                        elif ext == "xlsx":
-                            df = pd.read_excel(uploaded_file, engine="openpyxl")
+    #                     elif ext == "xlsx":
+    #                         df = pd.read_excel(uploaded_file, engine="openpyxl")
 
-                        elif ext == "json":
-                            try:
-                                df = pd.read_json(uploaded_file, orient="records")
-                            except ValueError:
-                                df = pd.read_json(uploaded_file, orient="columns")
+    #                     elif ext == "json":
+    #                         try:
+    #                             df = pd.read_json(uploaded_file, orient="records")
+    #                         except ValueError:
+    #                             df = pd.read_json(uploaded_file, orient="columns")
 
-                        else:
-                            st.error("Unsupported file format.")
-                            st.stop()
+    #                     else:
+    #                         st.error("Unsupported file format.")
+    #                         st.stop()
 
-        # After successful reading — save to session state
-                    st.session_state.df_original = df.copy()
-                    st.session_state.df_working = df.copy()
-                    st.session_state.transform_log = []
-                    st.session_state.last_uploaded_name = original_name
-                    st.session_state.file_uploaded_at = pd.Timestamp.now()
+    #     # After successful reading — save to session state
+    #                 st.session_state.df_original = df.copy()
+    #                 st.session_state.df_working = df.copy()
+    #                 st.session_state.transform_log = []
+    #                 st.session_state.last_uploaded_name = original_name
+    #                 st.session_state.file_uploaded_at = pd.Timestamp.now()
 
-                    st.success(f"File successfully loaded: **{original_name}**")
+    #                 st.success(f"File successfully loaded: **{original_name}**")
 
-        except Exception as e:
-            st.error(f"Failed to read the file.\n\n{str(e)}")
-            st.info(
-            "Possible reasons:\n"
-            "• File is corrupted\n"
-            "• Wrong encoding (for CSV try UTF-8)\n"
-            "• JSON is not in tabular format"
-            )
-            st.stop()
+    #     except Exception as e:
+    #         st.error(f"Failed to read the file.\n\n{str(e)}")
+    #         st.info(
+    #         "Possible reasons:\n"
+    #         "• File is corrupted\n"
+    #         "• Wrong encoding (for CSV try UTF-8)\n"
+    #         "• JSON is not in tabular format"
+    #         )
+    #         st.stop()
 
     # ── Show overview if data is present in session ───────────────────────────────
     if st.session_state.get("df_working") is not None:
