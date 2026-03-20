@@ -202,23 +202,23 @@ if page == "A. Upload & Overview":
                             st.stop()
 
             # After successful reading — save to session state
-            st.session_state.df_original = df.copy()
-            st.session_state.df_working = df.copy()
-            st.session_state.transform_log = []
-            st.session_state.last_uploaded_name = original_name
-            st.session_state.file_uploaded_at = pd.Timestamp.now()
+        st.session_state.df_original = df.copy()
+        st.session_state.df_working = df.copy()
+        st.session_state.transform_log = []
+        st.session_state.last_uploaded_name = original_name
+        st.session_state.file_uploaded_at = pd.Timestamp.now()
 
-            st.success(f"File successfully loaded: **{original_name}**")
+        st.success(f"File successfully loaded: **{original_name}**")
 
-        except Exception as e:
-            st.error(f"Failed to read the file.\n\n{str(e)}")
-            st.info(
-                "Possible reasons:\n"
-                "• File is corrupted\n"
-                "• Wrong encoding (for CSV try UTF-8)\n"
-                "• JSON is not in tabular format"
-            )
-            st.stop()
+    except Exception as e:
+        st.error(f"Failed to read the file.\n\n{str(e)}")
+        st.info(
+            "Possible reasons:\n"
+            "• File is corrupted\n"
+            "• Wrong encoding (for CSV try UTF-8)\n"
+            "• JSON is not in tabular format"
+        )
+        st.stop()
 
     # ── Show overview if data is present in session ───────────────────────────────
     if st.session_state.get("df_working") is not None:
