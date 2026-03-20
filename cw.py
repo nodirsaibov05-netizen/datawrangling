@@ -201,7 +201,7 @@ if page == "A. Upload & Overview":
                             st.error("Unsupported file format.")
                             st.stop()
 
-            # After successful reading — save to session state
+        # After successful reading — save to session state
         st.session_state.df_original = df.copy()
         st.session_state.df_working = df.copy()
         st.session_state.transform_log = []
