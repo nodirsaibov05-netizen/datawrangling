@@ -247,23 +247,24 @@ if uploaded_file is not None:
 
 elif page == "B. Cleaning & Preparation":
     st.title("B. Cleaning & Preparation Studio")
+    st.markdown("---")
 
     if st.session_state.get("df_working") is None:
-        st.warning("No dataset uploaded yet. Go to A. Upload & Overview first.")
+        st.info("No dataset uploaded yet. Please go to A. Upload & Overview and load a file first.")
     else:
         df = st.session_state.df_working
 
-        st.subheader("Current dataset shape")
+        st.subheader("Current dataset info")
         st.metric("Rows × Columns", f"{df.shape[0]:,} × {df.shape[1]}")
-
-        st.subheader("Missing values summary")
+        
+        st.subheader("Missing values count")
         miss = df.isna().sum()
         st.write(miss[miss > 0])
 
         st.subheader("First 5 rows")
         st.dataframe(df.head(5))
 
-        st.info("Cleaning tools (missing values, duplicates, etc.) will be added here step by step.")
+        st.info("Cleaning tools will be added here step by step (missing values, duplicates, etc.)")
 
 
 
