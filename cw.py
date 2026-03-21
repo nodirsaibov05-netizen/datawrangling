@@ -403,9 +403,9 @@ if uploaded_file is not None:
 # ────────────────────────────────────────────────
 #  Page B — Cleaning & Preparation (начало)
 # ────────────────────────────────────────────────
-# ================================================
-#   Page B — Cleaning & Preparation Studio
-# ================================================
+
+
+
 elif page == "B. Cleaning & Preparation":
     st.title("B. Cleaning & Preparation Studio")
     st.header("Test - Page B is loaded")
