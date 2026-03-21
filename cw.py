@@ -406,20 +406,27 @@ if uploaded_file is not None:
 # ────────────────────────────────────────────────
 
 
-elif page == "B. Cleaning & Preparation":
-    st.title("B. Cleaning & Preparation Studio")
-    st.header("Это страница B — она загрузилась!")
 
-    if "df_working" not in st.session_state or st.session_state.df_working is None:
-        st.warning("Датасет ещё не загружен. Перейдите на A. Upload & Overview и загрузите файл.")
+
+
+    elif page == "B. Cleaning & Preparation":
+    st.title("B. Cleaning & Preparation Studio")
+    
+    st.header("Эта страница теперь работает отдельно")
+    
+    if st.session_state.get("df_working") is None:
+        st.info("Датасет ещё не загружен. Перейдите на страницу A и загрузите файл.")
     else:
         df = st.session_state.df_working
         st.success(f"Датасет загружен: {df.shape[0]:,} строк × {df.shape[1]} столбцов")
+        st.subheader("Пропуски по столбцам (быстрый тест)")
+        st.write(df.isna().sum())
+        
         st.subheader("Первые 5 строк")
-        st.dataframe(df.head(5))
+        st.dataframe(df.head(5))if page == "B. Cleaning & Preparation":
 
 
-# elif page == "B. Cleaning & Preparation":
+
 #     st.title("B. Cleaning & Preparation Studio")
 #     st.header("Test - Page B is loaded")
 #     if st.session_state.get("df_working") is None:
@@ -526,5 +533,3 @@ elif page == "D. Export & Report":
     st.title("Export & Report")
     st.info("Coming soon...")
 
-if "df_working" in st.session_state and st.session_state.df_working is not None:
-    st.experimental_rerun()  # или st.rerun() в новых версиях
