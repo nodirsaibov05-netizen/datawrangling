@@ -14,6 +14,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+st.session_state.page = page  # принудительно обновляем состояние страницы
+
+
 # Немного кастомизации (опционально)
 st.markdown("""
     <style>
@@ -405,16 +408,28 @@ if uploaded_file is not None:
 # ────────────────────────────────────────────────
 
 
-
 elif page == "B. Cleaning & Preparation":
     st.title("B. Cleaning & Preparation Studio")
-    st.header("Test - Page B is loaded")
-    if st.session_state.get("df_working") is None:
-        st.warning("No dataset uploaded yet. Go to Upload & Overview.")
+    st.header("Это страница B — она загрузилась!")
+
+    if "df_working" not in st.session_state or st.session_state.df_working is None:
+        st.warning("Датасет ещё не загружен. Перейдите на A. Upload & Overview и загрузите файл.")
     else:
         df = st.session_state.df_working
-        st.write(f"Dataset shape: {df.shape}")
+        st.success(f"Датасет загружен: {df.shape[0]:,} строк × {df.shape[1]} столбцов")
+        st.subheader("Первые 5 строк")
         st.dataframe(df.head(5))
+
+
+# elif page == "B. Cleaning & Preparation":
+#     st.title("B. Cleaning & Preparation Studio")
+#     st.header("Test - Page B is loaded")
+#     if st.session_state.get("df_working") is None:
+#         st.warning("No dataset uploaded yet. Go to Upload & Overview.")
+#     else:
+#         df = st.session_state.df_working
+#         st.write(f"Dataset shape: {df.shape}")
+#         st.dataframe(df.head(5))
 
 
 
@@ -512,3 +527,6 @@ elif page == "C. Visualization Builder":
 elif page == "D. Export & Report":
     st.title("Export & Report")
     st.info("Coming soon...")
+
+if "df_working" in st.session_state and st.session_state.df_working is not None:
+    st.experimental_rerun()  # или st.rerun() в новых версиях
