@@ -158,10 +158,11 @@ if page == "A. Upload & Overview":
     separator = st.selectbox(
     "CSV delimiter (separator)",
     options=[", (comma)", "; (semicolon)", "\\t (tab)", "| (pipe)", "space"],
-    index=1,  # по умолчанию semicolon, потому что у тебя именно он
+    index=1,  # по умолчанию semicolon — потому что у тебя именно он в файлах
     help="Choose the character that separates columns in your CSV file"
 )
 
+# Словарь маппинга: ключ — отображаемый текст в selectbox, значение — реальный символ
 sep_map = {
     ", (comma)": ",",
     "; (semicolon)": ";",
@@ -170,12 +171,14 @@ sep_map = {
     "space": " "
 }
 
+# Получаем реальный разделитель по выбранному тексту
 selected_sep = sep_map[separator]
 
 uploaded_file = st.file_uploader(
     "Choose a file",
     type=["csv", "xlsx", "json"],
-    help="Supported: .csv, .xlsx, .json"
+    accept_multiple_files=False,
+    help="Supported formats: .csv, .xlsx, .json"
 )
 
 if uploaded_file is not None:
@@ -183,48 +186,54 @@ if uploaded_file is not None:
     original_name = uploaded_file.name
 
     try:
-        with st.spinner(f"Reading {original_name} ..."):
+        with st.spinner(f"Reading file {original_name} ..."):
 
             if ext == "csv":
                 encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
                 df = None
                 for enc in encodings:
                     try:
-                        uploaded_file.seek(0)
+                        uploaded_file.seek(0)  # обязательно сбрасываем позицию в начало файла
                         df = pd.read_csv(
                             uploaded_file,
                             encoding=enc,
-                            sep=selected_sep,                # ← вот ключевой параметр
-                            on_bad_lines='skip',
-                            decimal=','                      # если в числах запятая как десятичный разделитель
+                            sep=selected_sep,
+                            on_bad_lines='skip',  # пропускаем проблемные строки
+                            decimal=','           # если в числах запятая вместо точки
                         )
-                        st.info(f"Success with encoding: {enc}, separator: {separator}")
+                        st.info(f"Successfully read CSV with encoding: {enc}, separator: '{selected_sep}'")
                         break
                     except Exception as e:
-                        pass  # продолжаем пробовать
+                        continue
 
                 if df is None:
-                    st.error("Could not read CSV — try different separator or encoding.")
+                    st.error("Failed to read CSV with any encoding and selected separator.")
                     st.stop()
 
             elif ext == "xlsx":
                 df = pd.read_excel(uploaded_file, engine="openpyxl")
 
             elif ext == "json":
-                df = pd.read_json(uploaded_file)
+                try:
+                    df = pd.read_json(uploaded_file, orient="records")
+                except:
+                    df = pd.read_json(uploaded_file, orient="columns")
 
-        # Сохранение
+            else:
+                st.error("Unsupported file format.")
+                st.stop()
+
+        # Сохраняем в session_state
         st.session_state.df_original = df.copy()
         st.session_state.df_working = df.copy()
         st.session_state.transform_log = []
         st.session_state.last_uploaded_name = original_name
         st.session_state.file_uploaded_at = pd.Timestamp.now()
 
-        st.success(f"File loaded: **{original_name}** ({df.shape[0]} rows × {df.shape[1]} cols)")
+        st.success(f"File successfully loaded: **{original_name}** ({df.shape[0]:,} rows × {df.shape[1]} columns)")
 
     except Exception as e:
-        st.error(f"Error: {str(e)}")
-
+        st.error(f"Failed to read file: {str(e)}")
     # # File uploader — only required formats
     # uploaded_file = st.file_uploader(
     #     "Choose a file",
