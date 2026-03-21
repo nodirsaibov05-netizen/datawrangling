@@ -409,7 +409,7 @@ if uploaded_file is not None:
 
 
 
-    elif page == "B. Cleaning & Preparation":
+elif page == "B. Cleaning & Preparation":
     st.title("B. Cleaning & Preparation Studio")
     
     st.header("Эта страница теперь работает отдельно")
