@@ -423,7 +423,7 @@ elif page == "B. Cleaning & Preparation":
         st.write(df.isna().sum())
         
         st.subheader("Первые 5 строк")
-        st.dataframe(df.head(5))if page == "B. Cleaning & Preparation":
+        st.dataframe(df.head(5))if page == "B. Cleaning & Preparation"
 
 
 
