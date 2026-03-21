@@ -246,90 +246,112 @@ if uploaded_file is not None:
 
 
 elif page == "B. Cleaning & Preparation":
+    st.title("B. Cleaning & Preparation Studio")
 
-    st.title("Cleaning & Preparation Studio")
-
-    if st.session_state.df_working is None:
-        st.warning("Please upload a dataset first on the Upload page.")
+    if st.session_state.get("df_working") is None:
+        st.warning("No dataset uploaded yet. Go to A. Upload & Overview first.")
     else:
         df = st.session_state.df_working
 
-        # Пока просто показываем текущее состояние
         st.subheader("Current dataset shape")
-        st.write(f"{df.shape[0]:,} rows × {df.shape[1]} columns")
+        st.metric("Rows × Columns", f"{df.shape[0]:,} × {df.shape[1]}")
 
-        st.divider()
+        st.subheader("Missing values summary")
+        miss = df.isna().sum()
+        st.write(miss[miss > 0])
 
-        # ── MISSING VALUES ───────────────────────────────────────
-        with st.expander("🧹 4.1 Missing Values Handling", expanded=True):
+        st.subheader("First 5 rows")
+        st.dataframe(df.head(5))
 
-            miss = df.isna().sum()
-            miss = miss[miss > 0]
-            if len(miss) == 0:
-                st.success("No missing values — great!")
-            else:
-                st.write("Columns with missing values:")
-                st.write(miss.sort_values(ascending=False))
+        st.info("Cleaning tools (missing values, duplicates, etc.) will be added here step by step.")
 
-                action = st.radio("Choose action:", [
-                    "Do nothing",
-                    "Drop rows with missing in selected columns",
-                    "Drop columns with > X% missing",
-                    "Fill with constant",
-                    "Fill with statistic (mean/median/mode)",
-                    "Forward / Backward fill"
-                ], horizontal=False)
 
-                if action != "Do nothing":
 
-                    if "Drop rows" in action:
-                        cols = st.multiselect("Select columns (rows with NaN in ANY of these will be dropped)", df.columns)
-                        if cols and st.button("Apply: Drop rows with missing in selected columns", type="primary"):
-                            before = len(df)
-                            df = df.dropna(subset=cols)
-                            after = len(df)
-                            st.session_state.df_working = df
-                            st.session_state.transform_log.append({
-                                "step": "dropna_rows",
-                                "columns": cols,
-                                "rows_before": before,
-                                "rows_after": after,
-                                "timestamp": pd.Timestamp.now()
-                            })
-                            st.success(f"Dropped {before - after} rows. New shape: {df.shape}")
-                            st.rerun()
+# elif page == "B. Cleaning & Preparation":
 
-                    # ... остальные действия по missing values добавим в следующей итерации
+#     st.title("Cleaning & Preparation Studio")
 
-        # ── DUPLICATES ───────────────────────────────────────────
-        with st.expander("🧹 4.2 Duplicates", expanded=False):
-            dup_count = df.duplicated().sum()
-            st.write(f"Full-row duplicates: **{dup_count}**")
+#     if st.session_state.df_working is None:
+#         st.warning("Please upload a dataset first on the Upload page.")
+#     else:
+#         df = st.session_state.df_working
 
-            if dup_count > 0:
-                keep = st.radio("Keep", ["first", "last"])
-                if st.button(f"Remove duplicates (keep {keep})", type="primary"):
-                    before = len(df)
-                    df = df.drop_duplicates(keep=keep)
-                    after = len(df)
-                    st.session_state.df_working = df
-                    st.session_state.transform_log.append({
-                        "step": "remove_duplicates",
-                        "keep": keep,
-                        "rows_before": before,
-                        "rows_after": after,
-                        "timestamp": pd.Timestamp.now()
-                    })
-                    st.success(f"Removed {before - after} duplicates.")
-                    st.rerun()
+#         # Пока просто показываем текущее состояние
+#         st.subheader("Current dataset shape")
+#         st.write(f"{df.shape[0]:,} rows × {df.shape[1]} columns")
 
-        st.divider()
-        st.subheader("Transformation log (last 5 steps)")
-        if st.session_state.transform_log:
-            log_df = pd.DataFrame(st.session_state.transform_log[-5:])
-            st.dataframe(log_df)
-        else:
-            st.info("No transformations applied yet.")
+#         st.divider()
+
+#         # ── MISSING VALUES ───────────────────────────────────────
+#         with st.expander("🧹 4.1 Missing Values Handling", expanded=True):
+
+#             miss = df.isna().sum()
+#             miss = miss[miss > 0]
+#             if len(miss) == 0:
+#                 st.success("No missing values — great!")
+#             else:
+#                 st.write("Columns with missing values:")
+#                 st.write(miss.sort_values(ascending=False))
+
+#                 action = st.radio("Choose action:", [
+#                     "Do nothing",
+#                     "Drop rows with missing in selected columns",
+#                     "Drop columns with > X% missing",
+#                     "Fill with constant",
+#                     "Fill with statistic (mean/median/mode)",
+#                     "Forward / Backward fill"
+#                 ], horizontal=False)
+
+#                 if action != "Do nothing":
+
+#                     if "Drop rows" in action:
+#                         cols = st.multiselect("Select columns (rows with NaN in ANY of these will be dropped)", df.columns)
+#                         if cols and st.button("Apply: Drop rows with missing in selected columns", type="primary"):
+#                             before = len(df)
+#                             df = df.dropna(subset=cols)
+#                             after = len(df)
+#                             st.session_state.df_working = df
+#                             st.session_state.transform_log.append({
+#                                 "step": "dropna_rows",
+#                                 "columns": cols,
+#                                 "rows_before": before,
+#                                 "rows_after": after,
+#                                 "timestamp": pd.Timestamp.now()
+#                             })
+#                             st.success(f"Dropped {before - after} rows. New shape: {df.shape}")
+#                             st.rerun()
+
+#                     # ... остальные действия по missing values добавим в следующей итерации
+
+#         # ── DUPLICATES ───────────────────────────────────────────
+#         with st.expander("🧹 4.2 Duplicates", expanded=False):
+#             dup_count = df.duplicated().sum()
+#             st.write(f"Full-row duplicates: **{dup_count}**")
+
+#             if dup_count > 0:
+#                 keep = st.radio("Keep", ["first", "last"])
+#                 if st.button(f"Remove duplicates (keep {keep})", type="primary"):
+#                     before = len(df)
+#                     df = df.drop_duplicates(keep=keep)
+#                     after = len(df)
+#                     st.session_state.df_working = df
+#                     st.session_state.transform_log.append({
+#                         "step": "remove_duplicates",
+#                         "keep": keep,
+#                         "rows_before": before,
+#                         "rows_after": after,
+#                         "timestamp": pd.Timestamp.now()
+#                     })
+#                     st.success(f"Removed {before - after} duplicates.")
+#                     st.rerun()
+
+#         st.divider()
+#         st.subheader("Transformation log (last 5 steps)")
+#         if st.session_state.transform_log:
+#             log_df = pd.DataFrame(st.session_state.transform_log[-5:])
+#             st.dataframe(log_df)
+#         else:
+#             st.info("No transformations applied yet.")
 
 # Заглушки для остальных страниц
 elif page == "C. Visualization Builder":
