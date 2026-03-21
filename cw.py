@@ -155,14 +155,15 @@ if page == "A. Upload & Overview":
     )
 
 
-    separator = st.selectbox(
+    # Выбор разделителя для CSV (показываем всегда)
+separator = st.selectbox(
     "CSV delimiter (separator)",
     options=[", (comma)", "; (semicolon)", "\\t (tab)", "| (pipe)", "space"],
     index=1,  # по умолчанию semicolon — потому что у тебя именно он в файлах
     help="Choose the character that separates columns in your CSV file"
 )
 
-# Словарь маппинга: ключ — отображаемый текст в selectbox, значение — реальный символ
+# Словарь маппинга — ОБЯЗАТЕЛЬНО ДО строки selected_sep
 sep_map = {
     ", (comma)": ",",
     "; (semicolon)": ";",
@@ -171,7 +172,7 @@ sep_map = {
     "space": " "
 }
 
-# Получаем реальный разделитель по выбранному тексту
+# Теперь берём значение — sep_map уже существует
 selected_sep = sep_map[separator]
 
 uploaded_file = st.file_uploader(
@@ -186,22 +187,21 @@ if uploaded_file is not None:
     original_name = uploaded_file.name
 
     try:
-        with st.spinner(f"Reading file {original_name} ..."):
-
+        with st.spinner(f"Reading {original_name} ..."):
             if ext == "csv":
                 encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
                 df = None
                 for enc in encodings:
                     try:
-                        uploaded_file.seek(0)  # обязательно сбрасываем позицию в начало файла
+                        uploaded_file.seek(0)
                         df = pd.read_csv(
                             uploaded_file,
                             encoding=enc,
                             sep=selected_sep,
-                            on_bad_lines='skip',  # пропускаем проблемные строки
-                            decimal=','           # если в числах запятая вместо точки
+                            on_bad_lines='skip',
+                            decimal=','  # для русских чисел 15,5 вместо 15.5
                         )
-                        st.info(f"Successfully read CSV with encoding: {enc}, separator: '{selected_sep}'")
+                        st.info(f"Read successfully with encoding: {enc}, separator: '{selected_sep}'")
                         break
                     except Exception as e:
                         continue
@@ -219,21 +219,17 @@ if uploaded_file is not None:
                 except:
                     df = pd.read_json(uploaded_file, orient="columns")
 
-            else:
-                st.error("Unsupported file format.")
-                st.stop()
-
-        # Сохраняем в session_state
+        # Сохранение в session_state
         st.session_state.df_original = df.copy()
         st.session_state.df_working = df.copy()
         st.session_state.transform_log = []
         st.session_state.last_uploaded_name = original_name
         st.session_state.file_uploaded_at = pd.Timestamp.now()
 
-        st.success(f"File successfully loaded: **{original_name}** ({df.shape[0]:,} rows × {df.shape[1]} columns)")
+        st.success(f"File loaded successfully: **{original_name}** ({df.shape[0]:,} rows × {df.shape[1]} cols)")
 
     except Exception as e:
-        st.error(f"Failed to read file: {str(e)}")
+        st.error(f"Error reading file: {str(e)}")
     # # File uploader — only required formats
     # uploaded_file = st.file_uploader(
     #     "Choose a file",
