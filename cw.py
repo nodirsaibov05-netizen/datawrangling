@@ -14,8 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.session_state.page = page  # принудительно обновляем состояние страницы
-
 
 # Немного кастомизации (опционально)
 st.markdown("""
