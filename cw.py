@@ -419,11 +419,12 @@ elif page == "B. Cleaning & Preparation":
     else:
         df = st.session_state.df_working
         st.success(f"Датасет загружен: {df.shape[0]:,} строк × {df.shape[1]} столбцов")
+        
         st.subheader("Пропуски по столбцам (быстрый тест)")
         st.write(df.isna().sum())
         
         st.subheader("Первые 5 строк")
-        st.dataframe(df.head(5))if page == "B. Cleaning & Preparation"
+        st.dataframe(df.head(5))
 
 
 
