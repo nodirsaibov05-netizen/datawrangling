@@ -179,7 +179,25 @@ elif page == "B. Cleaning & Preparation":
         st.warning("Please upload a dataset first on the Upload & Overview page.")
     else:
         df = st.session_state.df_working
+        # Preview before/after helper
+        def show_preview(before_df, after_df, action_name):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**Before**")
+                st.metric("Rows", before_df.shape[0])
+                st.dataframe(before_df.head(3))
+            with col2:
+                st.markdown("**After**")
+                st.metric("Rows", after_df.shape[0])
+                st.dataframe(after_df.head(3))
 
+        # Transformation log display
+        with st.expander("Transformation Log (last 5 steps)", expanded=False):
+            if st.session_state.transform_log:
+                log_df = pd.DataFrame(st.session_state.transform_log[-5:])
+                st.dataframe(log_df, use_container_width=True)
+            else:
+                st.info("No transformations yet.")
         st.subheader("Current dataset shape")
         st.metric("Rows × Columns", f"{df.shape[0]:,} × {df.shape[1]}")
 
