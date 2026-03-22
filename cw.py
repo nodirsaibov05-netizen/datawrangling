@@ -299,6 +299,44 @@ elif page == "B. Cleaning & Preparation":
                             st.success(f"Dropped {len(to_drop)} columns")
                             st.rerun()
 
+
+
+                    elif action == "Forward fill / Backward fill":
+                        direction = st.radio("Direction", ["ffill (forward)", "bfill (backward)"])
+                        
+                        if st.button("Apply: fill ({direction})", type="primary"):
+                            filled_total = 0
+                            
+                            for col in selected_cols:
+                                before = df[col].isna().sum()
+                                if before == 0:
+                                    continue
+                                    
+                                if direction == "ffill (forward)":
+                                    df[col] = df[col].ffill()
+                                else:
+                                    df[col] = df[col].bfill()
+                                    
+                                after = df[col].isna().sum()
+                                filled = before - after
+                                filled_total += filled
+                                
+                                st.write(f"{col}: заполнено {filled} из {before} пропусков")
+                            
+                            st.session_state.df_working = df.copy()
+                            
+                            st.session_state.transform_log.append({
+                                "step": direction.split()[0],  # "ffill" или "bfill"
+                                "columns": selected_cols.copy(),
+                                "filled_count": filled_total,
+                                "timestamp": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+                            })
+                            
+                            show_preview(before_df, df, f"{direction}")
+                            st.success(f"Заполнено {filled_total} значений методом {direction}")
+                            st.rerun()
+
+                    
                     elif action == "Fill with constant value":
                         constant = st.text_input("Constant value", "0")
                         if st.button("Apply: Fill constant", type="primary"):
@@ -315,20 +353,7 @@ elif page == "B. Cleaning & Preparation":
                             st.rerun()
 
 
-                    elif action == "Forward fill / Backward fill":
-                        direction = st.radio("Direction", ["ffill (forward)", "bfill (backward)"])
-                        method = direction.split()[0]
-                        if st.button(f"Apply: {direction}", type="primary"):
-                            df[selected_cols] = df[selected_cols].fillna(method=method)
-                            st.session_state.df_working = df
-                            st.session_state.transform_log.append({
-                                "step": method,
-                                "columns": selected_cols,
-                                "filled": before_df[selected_cols].isna().sum().sum()
-                            })
-                            show_preview(before_df, df, direction)
-                            st.success(f"Filled using {method}")
-                            st.rerun()
+                    
 
                      
         
@@ -361,6 +386,7 @@ elif page == "B. Cleaning & Preparation":
                             st.rerun()
 
 
+                    
 
 
 
@@ -370,27 +396,7 @@ elif page == "B. Cleaning & Preparation":
 
 
 
-
-        
-        # # 4.1 Missing Values Handling
-        # with st.expander("🧹 4.1 Missing Values Handling", expanded=True):
-        #     miss = pd.DataFrame({
-        #         "Column": df.columns,
-        #         "Missing Count": df.isna().sum(),
-        #         "% Missing": (df.isna().mean() * 100).round(2)
-        #     }).sort_values("Missing Count", ascending=False)
-
-        #     miss_active = miss[miss["Missing Count"] > 0]
-        #     if miss_active.empty:
-        #         st.success("No missing values — great!")
-        #     else:
-        #         st.dataframe(
-        #             miss_active.style.bar(subset="% Missing", color="#ff9800"),
-        #             use_container_width=True,
-        #             hide_index=True
-        #         )
-
-        #     action = st.radio("Choose action:", [
+     
         #         "Do nothing",
         #         "Drop rows with missing in selected columns",
         #         "Drop columns with > X% missing",
