@@ -238,11 +238,31 @@ elif page == "B. Cleaning & Preparation":
             if action != "Do nothing":
                 numeric_cols = df.select_dtypes(include="number").columns.tolist()
                 cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+        
+                if action == "Fill with statistic (mean / median / mode)":
+                    method = st.selectbox("Statistic method", ["mean", "median", "mode"])
+                    if method in ["mean", "median"]:
+                        available_cols = numeric_cols
+                        help_text = "Mean и Median работают только с числовыми столбцами (int/float)"
+                    else:
+                        available_cols = df.columns.tolist()
+                        help_text = "Mode работает со всеми типами столбцов"
+                elif action in ["Fill with constant value", "Forward fill / Backward fill"]:
+                    available_cols = df.columns.tolist()
+                    help_text = "Подходит для всех типов столбцов"
+                else:
+                    available_cols = df.columns.tolist()
+                    help_text = "Подходит для всех типов столбцов"
+
                 selected_cols = st.multiselect(
                     "Select columns to apply action to",
-                    options=df.columns.tolist(),
-                    default=[]
+                    options=available_cols,
+                    default=[],
+                    help=help_text
                 )
+
+                if selected_cols:
+                    before_df = df.copy()
 
                 if selected_cols:
                     before_df = df.copy()  # для preview
