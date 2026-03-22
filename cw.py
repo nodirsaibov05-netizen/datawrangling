@@ -295,29 +295,30 @@ elif page == "B. Cleaning & Preparation":
                             st.rerun()
 
                     elif action == "Fill with statistic (mean / median / mode)":
-                        method = st.selectbox("Statistic", ["mean", "median", "mode"])
-                        if st.button(f"Apply: Fill {method}", type="primary"):
-                            filled_count = 0
-                            for col in selected_cols:
-                                if method == "mode":
-                                    val = df[col].mode()[0] if not df[col].mode().empty else None
-                                elif method == "mean":
-                                    val = df[col].mean()
-                                else:
-                                    val = df[col].median()
-                                if val is not None:
-                                    before_missing = df[col].isna().sum()
-                                    df[col] = df[col].fillna(val)
-                                    filled_count += before_missing
-                            st.session_state.df_working = df
-                            st.session_state.transform_log.append({
-                                "step": f"fill_{method}",
-                                "columns": selected_cols,
-                                "filled_count": filled_count
-                            })
-                            show_preview(before_df, df, f"Fill {method}")
-                            st.success(f"Filled {filled_count} values")
-                            st.rerun()
+    method = st.selectbox("Statistic", ["mean", "median", "mode"])
+    if st.button(f"Apply: Fill {method}", type="primary"):
+        filled_count = 0
+        for col in selected_cols:
+            if method == "mode":
+                val = df[col].mode()[0] if not df[col].mode().empty else None
+            elif method == "mean":
+                val = df[col].mean()
+            else:
+                val = df[col].median()
+            if val is not None:
+                before_missing = df[col].isna().sum()
+                df[col] = df[col].fillna(val)
+                filled_count += before_missing
+        st.session_state.df_working = df
+        st.session_state.transform_log.append({
+            "step": f"fill_{method}",
+            "columns": selected_cols,
+            "filled_count": filled_count
+        })
+        show_preview(before_df, df, f"Fill {method}")
+        st.success(f"Filled {filled_count} values")
+        # ← ВОТ ЗДЕСЬ ДОБАВЬ ЭТУ СТРОКУ
+        st.rerun()
 
                     elif action == "Forward fill / Backward fill":
                         direction = st.radio("Direction", ["ffill (forward)", "bfill (backward)"])
