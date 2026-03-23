@@ -512,7 +512,59 @@ elif page == "B. Cleaning & Preparation":
                     else:
                         st.dataframe(df[df.duplicated(keep=False)].head(10), use_container_width=True)
 
+        # 4.3 Data Types & Parsing
+        with st.expander("4.3 Data Types & Parsing", expanded=False):
+            st.subheader("Change column type")
 
+            col_to_change = st.selectbox("Select column", df.columns.tolist())
+            new_type = st.selectbox("New type", ["numeric", "categorical", "datetime"])
+
+            if new_type == "numeric":
+                if st.button("Convert to numeric (clean dirty strings)"):
+                    try:
+                        # Clean commas, $, spaces
+                        cleaned = df[col_to_change].astype(str).str.replace(',', '').str.replace('$', '').str.replace(' ', '')
+                        df[col_to_change] = pd.to_numeric(cleaned, errors='coerce')
+                        st.session_state.df_working = df
+                        st.session_state.transform_log.append({
+                            "step": "convert_to_numeric",
+                            "column": col_to_change,
+                            "invalid_values": df[col_to_change].isna().sum(),
+                            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                        })
+                        st.success(f"Converted to numeric. Invalid values turned to NaN: {df[col_to_change].isna().sum()}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Conversion failed: {e}")
+
+            elif new_type == "categorical":
+                if st.button("Convert to categorical"):
+                    df[col_to_change] = df[col_to_change].astype("category")
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "convert_to_categorical",
+                        "column": col_to_change,
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    st.success(f"Converted {col_to_change} to categorical")
+                    st.rerun()
+
+            elif new_type == "datetime":
+                date_format = st.text_input("Datetime format (optional, e.g. %Y-%m-%d)", "")
+                if st.button("Convert to datetime"):
+                    try:
+                        df[col_to_change] = pd.to_datetime(df[col_to_change], format=date_format if date_format else None, errors='coerce')
+                        st.session_state.df_working = df
+                        st.session_state.transform_log.append({
+                            "step": "convert_to_datetime",
+                            "column": col_to_change,
+                            "invalid_dates": df[col_to_change].isna().sum(),
+                            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                        })
+                        st.success(f"Converted to datetime. Invalid dates turned to NaN: {df[col_to_change].isna().sum()}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Conversion failed: {e}")
 
 # Заглушки для остальных страниц
 elif page == "C. Visualization Builder":
