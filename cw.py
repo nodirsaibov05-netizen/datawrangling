@@ -609,6 +609,117 @@ elif page == "B. Cleaning & Preparation":
                         except Exception as e:
                             st.error(f"Conversion failed: {str(e)}")
 
+
+
+
+        # 4.4 Categorical Data Tools
+        with st.expander("4.4 Categorical Data Tools", expanded=False):
+            st.subheader("Categorical column tools")
+
+            cat_col = st.selectbox(
+                "Select categorical column",
+                options=df.select_dtypes(include=["object", "category"]).columns.tolist(),
+                help="Выберите столбец с категориями (object или category)"
+            )
+
+            if cat_col:
+                # 1. Value standardization
+                st.markdown("**1. Standardization** (trim whitespace, lower/title case)")
+                standardize_action = st.radio("Standardization type", [
+                    "Do nothing",
+                    "Trim whitespace",
+                    "Lower case",
+                    "Title case (First Letter Capital)"
+                ], horizontal=True, key=f"std_{cat_col}")
+
+                if standardize_action != "Do nothing" and st.button("Apply standardization", type="primary"):
+                    before_df = df.copy()
+                    if standardize_action == "Trim whitespace":
+                        df[cat_col] = df[cat_col].str.strip()
+                    elif standardize_action == "Lower case":
+                        df[cat_col] = df[cat_col].str.lower()
+                    elif standardize_action == "Title case":
+                        df[cat_col] = df[cat_col].str.title()
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "standardize_categorical",
+                        "column": cat_col,
+                        "action": standardize_action,
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    show_preview(before_df, df, "Standardization")
+                    st.success(f"Applied {standardize_action.lower()} to {cat_col}")
+                    st.rerun()
+
+                # 2. Rare category grouping
+                st.markdown("**2. Group rare categories into 'Other'**")
+                min_freq = st.slider("Minimum frequency for category (below → 'Other')", 1, 100, 10)
+                if st.button("Group rare categories", type="primary"):
+                    before_df = df.copy()
+                    counts = df[cat_col].value_counts()
+                    rare = counts[counts < min_freq].index
+                    df[cat_col] = df[cat_col].replace(rare, "Other")
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "group_rare_categories",
+                        "column": cat_col,
+                        "min_freq": min_freq,
+                        "rare_categories": len(rare),
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    show_preview(before_df, df, "Group rare")
+                    st.success(f"Grouped {len(rare)} rare categories into 'Other'")
+                    st.rerun()
+
+                # 3. Mapping / Replacement
+                st.markdown("**3. Value mapping / replacement**")
+                mapping_input = st.text_area(
+                    "Enter mapping (format: old_value:new_value, one per line)",
+                    value="old_value1:new_value1\nold_value2:new_value2",
+                    height=100,
+                    help="Пример:\nMale:Male\nM:male\nFemale:Female\nF:female"
+                )
+
+                if mapping_input and st.button("Apply mapping", type="primary"):
+                    before_df = df.copy()
+                    mapping = {}
+                    for line in mapping_input.split("\n"):
+                        if ":" in line:
+                            old, new = line.split(":", 1)
+                            mapping[old.strip()] = new.strip()
+
+                    df[cat_col] = df[cat_col].replace(mapping)
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "value_mapping",
+                        "column": cat_col,
+                        "mapping": mapping,
+                        "changed_values": (before_df[cat_col] != df[cat_col]).sum(),
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    show_preview(before_df, df, "Value mapping")
+                    st.success(f"Applied mapping to {cat_col}. Changed { (before_df[cat_col] != df[cat_col]).sum() } values")
+                    st.rerun()
+
+                # 4. One-hot encoding (опционально, но сильно рекомендуется)
+                st.markdown("**4. One-hot encoding (optional)**")
+                if st.button("One-hot encode column", type="primary"):
+                    before_df = df.copy()
+                    one_hot = pd.get_dummies(df[cat_col], prefix=cat_col)
+                    df = pd.concat([df.drop(columns=[cat_col]), one_hot], axis=1)
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "one_hot_encoding",
+                        "column": cat_col,
+                        "new_columns": one_hot.columns.tolist(),
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    show_preview(before_df, df, "One-hot encoding")
+                    st.success(f"One-hot encoded {cat_col}. Added {len(one_hot.columns)} new columns")
+                    st.rerun()
+
+
+
 # Заглушки для остальных страниц
 elif page == "C. Visualization Builder":
     st.title("Visualization Builder")
