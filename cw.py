@@ -516,8 +516,21 @@ elif page == "B. Cleaning & Preparation":
         with st.expander("4.3 Data Types & Parsing", expanded=False):
             st.subheader("Change column type")
 
-            col_to_change = st.selectbox("Select column", df.columns.tolist())
-            new_type = st.selectbox("New type", ["numeric", "categorical", "datetime"])
+            col_type = st.selectbox("Select column type to convert", ["numeric", "categorical", "datetime"])
+
+                    if col_type == "numeric":
+                        available_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+                        help_text = "Выберите столбец для конвертации в число (только object/category, будет очищен от $ , пробелов)"
+                    elif col_type == "categorical":
+                        available_cols = df.columns.tolist()
+                        help_text = "Любой столбец → category (экономит память)"
+                    elif col_type == "datetime":
+                        available_cols = df.columns.tolist()
+                        help_text = "Любой столбец → datetime (с форматом или авто)"
+
+                               
+
+            col_to_change = st.selectbox("Select column", available_cols, help=help_text)
 
             if new_type == "numeric":
                 if st.button("Convert to numeric (clean dirty strings)"):
