@@ -518,15 +518,15 @@ elif page == "B. Cleaning & Preparation":
 
             col_type = st.selectbox("Select column type to convert", ["numeric", "categorical", "datetime"])
 
-                        if col_type == "numeric":
-                            available_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
-                            help_text = "Выберите столбец для конвертации в число (только object/category, будет очищен от $ , пробелов)"
-                        elif col_type == "categorical":
-                            available_cols = df.columns.tolist()
-                            help_text = "Любой столбец → category (экономит память)"
-                        elif col_type == "datetime":
-                            available_cols = df.columns.tolist()
-                            help_text = "Любой столбец → datetime (с форматом или авто)"
+                        # if col_type == "numeric":
+                        #     available_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+                        #     help_text = "Выберите столбец для конвертации в число (только object/category, будет очищен от $ , пробелов)"
+                        # elif col_type == "categorical":
+                        #     available_cols = df.columns.tolist()
+                        #     help_text = "Любой столбец → category (экономит память)"
+                        # elif col_type == "datetime":
+                        #     available_cols = df.columns.tolist()
+                        #     help_text = "Любой столбец → datetime (с форматом или авто)"
 
                                
 
