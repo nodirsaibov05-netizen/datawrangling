@@ -516,68 +516,98 @@ elif page == "B. Cleaning & Preparation":
         with st.expander("4.3 Data Types & Parsing", expanded=False):
             st.subheader("Change column type")
 
-            col_type = st.selectbox("Select column type to convert", ["numeric", "categorical", "datetime"])
+            # Сначала выбираем желаемый тип
+            desired_type = st.selectbox(
+                "Desired type",
+                ["numeric", "categorical", "datetime"],
+                index=0
+            )
 
-                        # if col_type == "numeric":
-                        #     available_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
-                        #     help_text = "Выберите столбец для конвертации в число (только object/category, будет очищен от $ , пробелов)"
-                        # elif col_type == "categorical":
-                        #     available_cols = df.columns.tolist()
-                        #     help_text = "Любой столбец → category (экономит память)"
-                        # elif col_type == "datetime":
-                        #     available_cols = df.columns.tolist()
-                        #     help_text = "Любой столбец → datetime (с форматом или авто)"
+            # Динамически фильтруем доступные колонки в зависимости от типа
+            if desired_type == "numeric":
+                available_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+                help_text = "Только текстовые столбцы (object/category) — будут очищены от $, запятых и пробелов"
+            elif desired_type == "categorical":
+                available_cols = df.columns.tolist()
+                help_text = "Любой столбец → преобразуется в category (экономит память)"
+            elif desired_type == "datetime":
+                available_cols = df.columns.tolist()
+                help_text = "Любой столбец → пытаемся распарсить как дату"
 
-                               
+            col_to_change = st.selectbox(
+                "Select column to convert",
+                options=available_cols,
+                index=0 if available_cols else None,
+                help=help_text
+            )
 
-            col_to_change = st.selectbox("Select column", available_cols, help=help_text)
+            # Если колонка выбрана — показываем действия
+            if col_to_change:
+                if desired_type == "numeric":
+                    if st.button("Convert to numeric (clean dirty strings)", type="primary"):
+                        try:
+                            # Очистка типичных "грязных" символов
+                            cleaned = df[col_to_change].astype(str).replace(
+                                r'[\$,€£¥ ]', '', regex=True  # $, €, £, ¥, пробелы
+                            ).str.replace(',', '.', regex=False)  # запятая → точка для десятичных
 
-            if new_type == "numeric":
-                if st.button("Convert to numeric (clean dirty strings)"):
-                    try:
-                        # Clean commas, $, spaces
-                        cleaned = df[col_to_change].astype(str).str.replace(',', '').str.replace('$', '').str.replace(' ', '')
-                        df[col_to_change] = pd.to_numeric(cleaned, errors='coerce')
-                        st.session_state.df_working = df
-                        st.session_state.transform_log.append({
-                            "step": "convert_to_numeric",
-                            "column": col_to_change,
-                            "invalid_values": df[col_to_change].isna().sum(),
-                            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                        })
-                        st.success(f"Converted to numeric. Invalid values turned to NaN: {df[col_to_change].isna().sum()}")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Conversion failed: {e}")
+                            df[col_to_change] = pd.to_numeric(cleaned, errors='coerce')
+                            invalid_count = df[col_to_change].isna().sum()
 
-            elif new_type == "categorical":
-                if st.button("Convert to categorical"):
-                    df[col_to_change] = df[col_to_change].astype("category")
-                    st.session_state.df_working = df
-                    st.session_state.transform_log.append({
-                        "step": "convert_to_categorical",
-                        "column": col_to_change,
-                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                    })
-                    st.success(f"Converted {col_to_change} to categorical")
-                    st.rerun()
+                            st.session_state.df_working = df
+                            st.session_state.transform_log.append({
+                                "step": "convert_to_numeric",
+                                "column": col_to_change,
+                                "invalid_values": invalid_count,
+                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                            })
 
-            elif new_type == "datetime":
-                date_format = st.text_input("Datetime format (optional, e.g. %Y-%m-%d)", "")
-                if st.button("Convert to datetime"):
-                    try:
-                        df[col_to_change] = pd.to_datetime(df[col_to_change], format=date_format if date_format else None, errors='coerce')
-                        st.session_state.df_working = df
-                        st.session_state.transform_log.append({
-                            "step": "convert_to_datetime",
-                            "column": col_to_change,
-                            "invalid_dates": df[col_to_change].isna().sum(),
-                            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                        })
-                        st.success(f"Converted to datetime. Invalid dates turned to NaN: {df[col_to_change].isna().sum()}")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Conversion failed: {e}")
+                            st.success(f"Converted to numeric. Invalid values → NaN: {invalid_count}")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Conversion failed: {str(e)}")
+
+                elif desired_type == "categorical":
+                    if st.button("Convert to categorical", type="primary"):
+                        try:
+                            df[col_to_change] = df[col_to_change].astype("category")
+                            st.session_state.df_working = df
+                            st.session_state.transform_log.append({
+                                "step": "convert_to_categorical",
+                                "column": col_to_change,
+                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                            })
+                            st.success(f"Converted '{col_to_change}' to categorical")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Conversion failed: {str(e)}")
+
+                elif desired_type == "datetime":
+                    date_format = st.text_input(
+                        "Datetime format (optional, e.g. %Y-%m-%d or %d/%m/%Y)",
+                        value="",
+                        help="Оставьте пустым для автоматического распознавания"
+                    )
+                    if st.button("Convert to datetime", type="primary"):
+                        try:
+                            df[col_to_change] = pd.to_datetime(
+                                df[col_to_change],
+                                format=date_format if date_format else None,
+                                errors='coerce'
+                            )
+                            invalid_count = df[col_to_change].isna().sum()
+                            st.session_state.df_working = df
+                            st.session_state.transform_log.append({
+                                "step": "convert_to_datetime",
+                                "column": col_to_change,
+                                "format_used": date_format or "auto",
+                                "invalid_dates": invalid_count,
+                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                            })
+                            st.success(f"Converted to datetime. Invalid dates → NaN: {invalid_count}")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Conversion failed: {str(e)}")
 
 # Заглушки для остальных страниц
 elif page == "C. Visualization Builder":
