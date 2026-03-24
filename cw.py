@@ -653,8 +653,12 @@ elif page == "B. Cleaning & Preparation":
                 st.success(f"Applied mapping to '{mapping_col}'. Changed {changed} values.")
                 st.rerun()
 
-            # 4. One-hot encoding
+           
+           # 4. One-hot encoding
+                            
             st.markdown("**4. One-hot encoding (optional)**")
+            st.warning("⚠️ This will permanently delete the original column and add multiple new columns.")
+
             if st.button("One-hot encode selected column", type="primary"):
                 before_df = df.copy()
                 one_hot = pd.get_dummies(df[selected_cat_col], prefix=selected_cat_col, prefix_sep="_")
@@ -668,7 +672,7 @@ elif page == "B. Cleaning & Preparation":
                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                 })
                 show_preview(before_df, df, "One-hot encoding")
-                st.success(f"One-hot encoded '{selected_cat_col}'. Added {len(one_hot.columns)} new columns.")
+                st.success(f"One-hot encoded '{selected_cat_col}'. Original column deleted. Added {len(one_hot.columns)} new columns.")
                 st.rerun()
 
 
