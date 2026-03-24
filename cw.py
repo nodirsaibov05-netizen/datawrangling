@@ -386,83 +386,7 @@ elif page == "B. Cleaning & Preparation":
                             st.rerun()
 
 
-                    
-
-
-
-
-
-
-
-
-
-     
-        #         "Do nothing",
-        #         "Drop rows with missing in selected columns",
-        #         "Drop columns with > X% missing",
-        #         "Fill with constant",
-        #         "Fill with statistic (mean/median/mode)",
-        #         "Forward / Backward fill"
-        #     ], horizontal=False)
-
-        #     if action != "Do nothing":
-        #         selected_cols = st.multiselect("Select columns", df.columns.tolist())
-
-        #         if selected_cols:
-        #             if action == "Drop rows with missing in selected columns":
-        #                 if st.button("Apply: Drop rows", type="primary"):
-        #                     before = df.shape[0]
-        #                     df = df.dropna(subset=selected_cols)
-        #                     st.session_state.df_working = df
-        #                     st.success(f"Dropped {before - df.shape[0]} rows. New shape: {df.shape}")
-        #                     # st.rerun() — убрано, чтобы не ломать переключение
-
-        #             # ... остальные действия можно добавить позже
-
-        # DUPLICATES
-               # 4.2 Duplicates
-        # with st.expander("4.2 Duplicates", expanded=False):
-
-        #     # Full row duplicates
-        #     full_dups = df.duplicated().sum()
-        #     st.metric("Full row duplicates", full_dups)
-
-        #     # Subset duplicates
-        #     subset_cols = st.multiselect(
-        #         "Check duplicates by subset of columns",
-        #         options=df.columns.tolist(),
-        #         default=[],
-        #         help="Duplicates will be detected only by selected columns"
-        #     )
-
-        #     if subset_cols:
-        #         subset_dups = df.duplicated(subset=subset_cols).sum()
-        #         st.metric("Duplicates by selected columns", subset_dups)
-
-        #         if subset_dups > 0:
-        #             before_df = df.copy()
-        #             keep = st.radio("Keep which duplicate?", ["first", "last"])
-        #             if st.button(f"Remove duplicates (keep {keep})", type="primary"):
-        #                 df = df.drop_duplicates(subset=subset_cols, keep=keep)
-        #                 st.session_state.df_working = df
-        #                 st.session_state.transform_log.append({
-        #                     "step": "remove_duplicates",
-        #                     "subset": subset_cols if subset_cols else "all columns",
-        #                     "keep": keep,
-        #                     "rows_before": before_df.shape[0],
-        #                     "rows_after": df.shape[0],
-        #                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        #                 })
-        #                 show_preview(before_df, df, "Remove duplicates")
-        #                 st.success(f"Removed {before_df.shape[0] - df.shape[0]} duplicates")
-        #                 st.rerun()
-
-        #     # Show duplicate groups
-        #     if full_dups > 0:
-        #         if st.button("Show duplicate groups (first 10 rows)"):
-        #             st.dataframe(df[df.duplicated(keep=False)].head(10), use_container_width=True)
-
-
+                
 
 
 
@@ -720,282 +644,78 @@ elif page == "B. Cleaning & Preparation":
 
 
 
-# Заглушки для остальных страниц
-elif page == "C. Visualization Builder":
-    st.title("Visualization Builder")
-    st.info("Coming soon...")
-
-elif page == "D. Export & Report":
-    st.title("Export & Report")
-    st.info("Coming soon...")
-
-
-
-# import streamlit as st
-# import pandas as pd
-# import numpy as np
-# from io import BytesIO
-# import datetime
-
-# # ────────────────────────────────────────────────
-# #  Page config & basic styling
-# # ────────────────────────────────────────────────
-# st.set_page_config(
-#     page_title="AI-Assisted Data Wrangler & Visualizer",
-#     layout="wide",
-#     initial_sidebar_state="expanded"
-# )
-
-# # Немного кастомизации (опционально)
-# st.markdown("""
-#     <style>
-#     .stButton>button {width: 100%;}
-#     .reportview-container {background: #f8f9fa;}
-#     </style>
-# """, unsafe_allow_html=True)
-
-# # ────────────────────────────────────────────────
-# #  Session state initialization
-# # ────────────────────────────────────────────────
-# if "df_original" not in st.session_state:
-#     st.session_state.df_original = None
-#     st.session_state.df_working = None
-#     st.session_state.transform_log = []
-#     st.session_state.file_name = None
-
-# # ────────────────────────────────────────────────
-# #  Sidebar navigation
-# # ────────────────────────────────────────────────
-# st.sidebar.title("Data Wrangler")
-# page = st.sidebar.radio("Go to", [
-#     "A. Upload & Overview",
-#     "B. Cleaning & Preparation",
-#     "C. Visualization Builder",
-#     "D. Export & Report"
-# ])
-
-# if st.sidebar.button("🔄 Reset everything", type="primary"):
-#     for key in list(st.session_state.keys()):
-#         del st.session_state[key]
-#     st.rerun()
-
-# # ────────────────────────────────────────────────
-# #  Page A — Upload & Overview
-# # ────────────────────────────────────────────────
-# if page == "A. Upload & Overview":
-
-#     st.title("A. Upload & Data Overview")
-
-#     st.markdown(
-#         "Upload your file in one of the following formats: **CSV**, **Excel (.xlsx)** or **JSON**.\n"
-#         "For coursework requirements, datasets should ideally have ≥ 1000 rows and ≥ 8 columns."
-#     )
-
-#     # Выбор разделителя для CSV (показываем всегда)
-#     separator = st.selectbox(
-#         "CSV delimiter (separator)",
-#         options=[", (comma)", "; (semicolon)", "\\t (tab)", "| (pipe)", "space"],
-#         index=1,  # по умолчанию semicolon
-#         help="Choose the character that separates columns in your CSV file"
-#     )
-
-#     sep_map = {
-#         ", (comma)": ",",
-#         "; (semicolon)": ";",
-#         "\\t (tab)": "\t",
-#         "| (pipe)": "|",
-#         "space": " "
-#     }
-
-#     selected_sep = sep_map[separator]
-
-#     uploaded_file = st.file_uploader(
-#         "Choose a file",
-#         type=["csv", "xlsx", "json"],
-#         accept_multiple_files=False,
-#         help="Supported formats: .csv, .xlsx, .json"
-#     )
-
-#     if uploaded_file is not None:
-#         ext = uploaded_file.name.split('.')[-1].lower()
-#         original_name = uploaded_file.name
-
-#         try:
-#             with st.spinner(f"Reading file {original_name} ..."):
-
-#                 if ext == "csv":
-#                     encodings = ['utf-8', 'latin1', 'cp1252', 'iso-8859-1']
-#                     df = None
-#                     for enc in encodings:
-#                         try:
-#                             uploaded_file.seek(0)
-#                             df = pd.read_csv(
-#                                 uploaded_file,
-#                                 encoding=enc,
-#                                 sep=selected_sep,
-#                                 on_bad_lines='skip',
-#                                 decimal=','
-#                             )
-#                             st.info(f"Successfully read with encoding: {enc}, separator: '{selected_sep}'")
-#                             break
-#                         except Exception:
-#                             continue
-
-#                     if df is None:
-#                         st.error("Failed to read CSV with any encoding and selected separator.")
-#                         st.stop()
-
-#                 elif ext in ["xlsx", "xls"]:
-#                     df = pd.read_excel(uploaded_file, engine="openpyxl")
-
-#                 elif ext == "json":
-#                     df = pd.read_json(uploaded_file)
-
-#                 st.session_state.df_original = df.copy()
-#                 st.session_state.df_working = df.copy()
-#                 st.session_state.transform_log = []
-#                 st.session_state.file_name = original_name
-
-#                 st.success(f"File loaded: **{original_name}**  •  {df.shape[0]:,} rows × {df.shape[1]} columns")
-
-#         except Exception as e:
-#             st.error(f"Error reading file: {str(e)}")
-
-#     if st.session_state.df_working is not None:
-#         df = st.session_state.df_working
-
-#         col1, col2, col3, col4 = st.columns(4)
-#         col1.metric("Rows", f"{df.shape[0]:,}")
-#         col2.metric("Columns", df.shape[1])
-#         col3.metric("Missing cells", df.isna().sum().sum())
-#         col4.metric("Full duplicates", df.duplicated().sum())
-
-#         tab1, tab2, tab3, tab4 = st.tabs(["Columns & Types", "Numeric Stats", "Missing Values", "Duplicates"])
-
-#         with tab1:
-#             st.subheader("Columns and types")
-#             overview = pd.DataFrame({
-#                 "Column": df.columns,
-#                 "Type": df.dtypes.astype(str),
-#                 "Non-null": df.notna().sum(),
-#                 "% Filled": (df.notna().mean() * 100).round(1)
-#             })
-#             st.dataframe(overview, use_container_width=True)
-
-#         with tab2:
-#             st.subheader("Numeric statistics")
-#             st.dataframe(df.describe().round(2), use_container_width=True)
-
-#         with tab3:
-#             st.subheader("Missing values")
-#             miss = pd.DataFrame({
-#                 "Column": df.columns,
-#                 "Missing": df.isna().sum(),
-#                 "%": (df.isna().mean() * 100).round(2)
-#             }).sort_values("Missing", ascending=False)
-#             st.dataframe(miss[miss["Missing"] > 0], use_container_width=True)
-
-#         with tab4:
-#             st.subheader("Duplicates")
-#             st.metric("Full duplicates", df.duplicated().sum())
-
-#         if st.button("Show first 500 rows"):
-#             st.dataframe(df.head(500), use_container_width=True)
-
-# # ────────────────────────────────────────────────
-# #  Page B — Cleaning & Preparation
-# # ────────────────────────────────────────────────
-# elif page == "B. Cleaning & Preparation":
-
-#     st.title("B. Cleaning & Preparation Studio")
-
-#     if st.session_state.get("df_working") is None:
-#         st.warning("Please upload a dataset first on the Upload & Overview page.")
-#     else:
-#         df = st.session_state.df_working
-
-#         st.subheader("Current dataset shape")
-#         st.metric("Rows × Columns", f"{df.shape[0]:,} × {df.shape[1]}")
-
-#         st.divider()
-
-#         # ── MISSING VALUES ───────────────────────────────────────
-#         with st.expander("🧹 4.1 Missing Values Handling", expanded=True):
-
-#             miss = df.isna().sum()
-#             miss = miss[miss > 0]
-#             if len(miss) == 0:
-#                 st.success("No missing values – great!")
-#             else:
-#                 st.write("Columns with missing values:")
-#                 st.write(miss.sort_values(ascending=False))
-
-#                 action = st.radio("Choose action:", [
-#                     "Do nothing",
-#                     "Drop rows with missing in selected columns",
-#                     "Drop columns with > X% missing",
-#                     "Fill with constant",
-#                     "Fill with statistic (mean/median/mode)",
-#                     "Forward / Backward fill"
-#                 ], horizontal=False)
-
-#                 if action != "Do nothing":
-
-#                     selected_cols = st.multiselect("Select columns", df.columns.tolist())
-
-#                     if selected_cols:
-
-#                         if action == "Drop rows with missing in selected columns":
-#                             if st.button("Apply: Drop rows with missing in selected columns", type="primary"):
-#                                 before = len(df)
-#                                 df = df.dropna(subset=selected_cols)
-#                                 after = len(df)
-#                                 st.session_state.df_working = df
-#                                 st.session_state.transform_log.append({
-#                                     "step": "dropna_rows",
-#                                     "columns": selected_cols,
-#                                     "rows_before": before,
-#                                     "rows_after": after,
-#                                     "timestamp": pd.Timestamp.now()
-#                                 })
-#                                 st.success(f"Dropped {before - after} rows. New shape: {df.shape}")
-
-#                         # ... остальные действия по missing values можно добавить позже
-
-#         # ── DUPLICATES ───────────────────────────────────────────
-#         with st.expander("🧹 4.2 Duplicates", expanded=False):
-#             dup_count = df.duplicated().sum()
-#             st.write(f"Full-row duplicates: **{dup_count}**")
-
-#             if dup_count > 0:
-#                 keep = st.radio("Keep", ["first", "last"])
-#                 if st.button(f"Remove duplicates (keep {keep})", type="primary"):
-#                     before = len(df)
-#                     df = df.drop_duplicates(keep=keep)
-#                     after = len(df)
-#                     st.session_state.df_working = df
-#                     st.session_state.transform_log.append({
-#                         "step": "remove_duplicates",
-#                         "keep": keep,
-#                         "rows_before": before,
-#                         "rows_after": after,
-#                         "timestamp": pd.Timestamp.now()
-#                     })
-#                     st.success(f"Removed {before - after} duplicates.")
-
-#         st.divider()
-#         st.subheader("Transformation log (last 5 steps)")
-#         if st.session_state.transform_log:
-#             log_df = pd.DataFrame(st.session_state.transform_log[-5:])
-#             st.dataframe(log_df)
-#         else:
-#             st.info("No transformations applied yet.")
-
 # # Заглушки для остальных страниц
 # elif page == "C. Visualization Builder":
 #     st.title("Visualization Builder")
 #     st.info("Coming soon...")
 
-# elif page == "D. Export & Report":
-#     st.title("Export & Report")
-#     st.info("Coming soon...")
+elif page == "D. Export & Report":
+    st.title("D. Export & Report")
+
+    if st.session_state.get("df_working") is None:
+        st.warning("No dataset to export. Please upload and clean data first on pages A and B.")
+    else:
+        df_final = st.session_state.df_working
+
+        st.subheader("Final dataset ready for export")
+        st.metric("Rows × Columns", f"{df_final.shape[0]:,} × {df_final.shape[1]}")
+
+        st.divider()
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.subheader("Export as CSV")
+            csv = df_final.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv,
+                file_name="cleaned_dataset.csv",
+                mime="text/csv"
+            )
+
+        with col2:
+            st.subheader("Export as Excel")
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_final.to_excel(writer, index=False, sheet_name='Cleaned_Data')
+            excel_data = output.getvalue()
+            st.download_button(
+                label="📥 Download Excel (.xlsx)",
+                data=excel_data,
+                file_name="cleaned_dataset.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        with col3:
+            st.subheader("Export as JSON")
+            json_str = df_final.to_json(orient="records", date_format="iso")
+            st.download_button(
+                label="📥 Download JSON",
+                data=json_str,
+                file_name="cleaned_dataset.json",
+                mime="application/json"
+            )
+
+        st.divider()
+
+        # Transformation Report
+        st.subheader("Transformation Report")
+        if st.session_state.transform_log:
+            log_df = pd.DataFrame(st.session_state.transform_log)
+            st.dataframe(log_df, use_container_width=True)
+
+            log_csv = log_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Transformation Log (CSV)",
+                data=log_csv,
+                file_name="transformation_log.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No transformations performed yet.")
+
+        st.caption("All exports include the final cleaned version of your dataset.")
+
+
+
