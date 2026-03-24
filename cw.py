@@ -703,6 +703,7 @@ elif page == "B. Cleaning & Preparation":
 
 
                         # 4.5 Numeric Cleaning (Outliers)
+                # 4.5 Numeric Cleaning (Outliers)
         with st.expander("4.5 Numeric Cleaning (Outliers)", expanded=False):
             st.subheader("Outlier Detection & Handling")
 
@@ -742,7 +743,7 @@ elif page == "B. Cleaning & Preparation":
                             df[col_for_outliers] = df[col_for_outliers].clip(lower=lower, upper=upper)
                         else:
                             df[col_for_outliers] = df[col_for_outliers].clip(lower=mean-3*std, upper=mean+3*std)
-                    else:
+                    else:  # Remove rows
                         if method == "IQR Method (recommended)":
                             df = df[(df[col_for_outliers] >= lower) & (df[col_for_outliers] <= upper)]
                         else:
@@ -761,8 +762,17 @@ elif page == "B. Cleaning & Preparation":
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
 
-                    # ПРАВИЛЬНЫЙ ВЫЗОВ
-                    show_preview(before_df, df, f"Outlier Handling - {col_for_outliers}", highlight_col=col_for_outliers)
+                    # ПРОСТОЙ ПРЕВЬЮ БЕЗ ФУНКЦИИ
+                    st.markdown(f"### 📊 Changes Preview: {action} on {col_for_outliers}")
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown("**Before**")
+                        st.metric("Rows", before_df.shape[0])
+                        st.dataframe(before_df[[col_for_outliers]].head(10), use_container_width=True)
+                    with c2:
+                        st.markdown("**After**")
+                        st.metric("Rows", df.shape[0])
+                        st.dataframe(df[[col_for_outliers]].head(10), use_container_width=True)
 
                     st.success(f"Operation completed on '{col_for_outliers}'")
                     st.rerun()
