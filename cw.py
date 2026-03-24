@@ -677,6 +677,123 @@ elif page == "B. Cleaning & Preparation":
 
 
 
+
+        # 4.5 Numeric Cleaning - Outlier Handling
+        with st.expander("4.5 Numeric Cleaning (Outliers)", expanded=False):
+            st.subheader("Outlier Detection & Handling")
+
+            numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+
+            if not numeric_cols:
+                st.warning("No numeric columns found in the dataset.")
+            else:
+                col_for_outliers = st.selectbox("Select numeric column for outlier handling", numeric_cols)
+
+                method = st.radio("Outlier detection method", ["IQR Method (recommended)", "Z-Score"], horizontal=True)
+
+                if method == "IQR Method (recommended)":
+                    q1 = df[col_for_outliers].quantile(0.25)
+                    q3 = df[col_for_outliers].quantile(0.75)
+                    iqr = q3 - q1
+                    lower_bound = q1 - 1.5 * iqr
+                    upper_bound = q3 + 1.5 * iqr
+                    outliers_count = ((df[col_for_outliers] < lower_bound) | (df[col_for_outliers] > upper_bound)).sum()
+                    st.metric("Outliers detected (IQR)", outliers_count)
+                    st.info(f"Lower bound: {lower_bound:.2f} | Upper bound: {upper_bound:.2f}")
+
+                else:  # Z-Score
+                    z_scores = np.abs((df[col_for_outliers] - df[col_for_outliers].mean()) / df[col_for_outliers].std())
+                    outliers_count = (z_scores > 3).sum()
+                    st.metric("Outliers detected (Z-Score > 3)", outliers_count)
+
+                action = st.radio("Action for outliers", 
+                                ["Do nothing", 
+                                 "Cap (Winsorize) at bounds", 
+                                 "Remove outlier rows"], 
+                                horizontal=True)
+
+                if action != "Do nothing" and st.button("Apply outlier handling", type="primary"):
+                    before_df = df.copy()
+                    if action == "Cap (Winsorize) at bounds":
+                        if method == "IQR Method (recommended)":
+                            df[col_for_outliers] = df[col_for_outliers].clip(lower=lower_bound, upper=upper_bound)
+                        else:
+                            df[col_for_outliers] = df[col_for_outliers].clip(
+                                lower=df[col_for_outliers].mean() - 3*df[col_for_outliers].std(),
+                                upper=df[col_for_outliers].mean() + 3*df[col_for_outliers].std()
+                            )
+                        st.success(f"Outliers capped in '{col_for_outliers}'")
+                    else:  # Remove outlier rows
+                        if method == "IQR Method (recommended)":
+                            df = df[(df[col_for_outliers] >= lower_bound) & (df[col_for_outliers] <= upper_bound)]
+                        else:
+                            df = df[z_scores <= 3]
+                        st.success(f"Removed {before_df.shape[0] - df.shape[0]} outlier rows")
+
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "outlier_handling",
+                        "column": col_for_outliers,
+                        "method": method,
+                        "action": action,
+                        "outliers_affected": outliers_count,
+                        "rows_before": before_df.shape[0],
+                        "rows_after": df.shape[0],
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    show_preview(before_df, df, "Outlier Handling")
+                    st.rerun()
+
+        # 4.6 Normalization / Scaling
+        with st.expander("4.6 Normalization / Scaling", expanded=False):
+            st.subheader("Normalization and Scaling")
+
+            numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+
+            if not numeric_cols:
+                st.warning("No numeric columns available for scaling.")
+            else:
+                scaling_method = st.radio("Scaling method", ["Min-Max Scaling", "Z-Score Standardization"], horizontal=True)
+
+                cols_to_scale = st.multiselect(
+                    "Select numeric columns to scale",
+                    options=numeric_cols,
+                    default=numeric_cols[:3] if len(numeric_cols) >= 3 else numeric_cols
+                )
+
+                if cols_to_scale and st.button("Apply scaling", type="primary"):
+                    before_df = df.copy()
+
+                    if scaling_method == "Min-Max Scaling":
+                        from sklearn.preprocessing import MinMaxScaler
+                        scaler = MinMaxScaler()
+                        df[cols_to_scale] = scaler.fit_transform(df[cols_to_scale])
+                        st.success(f"Min-Max scaling applied to {len(cols_to_scale)} columns")
+
+                    else:  # Z-Score Standardization
+                        from sklearn.preprocessing import StandardScaler
+                        scaler = StandardScaler()
+                        df[cols_to_scale] = scaler.fit_transform(df[cols_to_scale])
+                        st.success(f"Z-Score standardization applied to {len(cols_to_scale)} columns")
+
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "scaling",
+                        "method": scaling_method,
+                        "columns": cols_to_scale,
+                        "rows_before": before_df.shape[0],
+                        "rows_after": df.shape[0],
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    show_preview(before_df, df, f"{scaling_method}")
+                    st.rerun()
+
+                st.caption("Note: Scaling is applied only to selected numeric columns. Original values can be seen in Before/After preview.")
+
+
+
+
+
 # # Заглушки для остальных страниц
 # elif page == "C. Visualization Builder":
 #     st.title("Visualization Builder")
