@@ -456,6 +456,8 @@ elif page == "B. Cleaning & Preparation":
                     st.info("No duplicates found with current selection.")
 
             st.caption("💡 Tip: Selecting more columns = fewer duplicates will be removed.")
+           
+            
             # Show duplicate groups
             if full_dups > 0 or (subset_cols and subset_dups > 0):
                 if st.button("Show duplicate groups (first 10 rows)"):
