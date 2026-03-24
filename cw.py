@@ -553,120 +553,123 @@ elif page == "B. Cleaning & Preparation":
 
 
                # 4.4 Categorical Data Tools
+                # 4.4 Categorical Data Tools
         with st.expander("4.4 Categorical Data Tools", expanded=False):
             st.subheader("Categorical Data Tools")
 
-            # Выбор колонки один раз для всех инструментов
-            cat_col = st.selectbox(
-                "Select categorical column",
-                options=df.select_dtypes(include=["object", "category"]).columns.tolist() or ["No categorical columns found"],
-                key="cat_col_select"
+            # Общий выбор колонки для большинства операций
+            cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+            if not cat_cols:
+                st.warning("No categorical columns found in the dataset.")
+                st.stop()
+
+            selected_cat_col = st.selectbox(
+                "Select categorical column (for Standardization, Rare grouping, One-hot)",
+                options=cat_cols,
+                key="main_cat_col"
             )
 
-            if cat_col == "No categorical columns found":
-                st.warning("No categorical (object/category) columns found in the dataset.")
-            else:
-                st.markdown(f"**Selected column:** `{cat_col}`")
+            st.markdown(f"**Current selected column:** `{selected_cat_col}`")
 
-                # 1. Standardization
-                st.markdown("**1. Standardization** (trim, lower, title case)")
-                std_action = st.radio(
-                    "Choose action",
-                    ["Trim whitespace", "Lower case", "Title case"],
-                    horizontal=True,
-                    key=f"std_{cat_col}"
-                )
+            # 1. Standardization
+            st.markdown("**1. Standardization** (trim, lower, title case)")
+            std_action = st.radio("Choose action", ["Trim whitespace", "Lower case", "Title case"], horizontal=True)
 
-                if st.button("Apply standardization", type="primary", key=f"std_btn_{cat_col}"):
-                    before_df = df.copy()
-                    if std_action == "Trim whitespace":
-                        df[cat_col] = df[cat_col].str.strip()
-                    elif std_action == "Lower case":
-                        df[cat_col] = df[cat_col].str.lower()
-                    elif std_action == "Title case":
-                        df[cat_col] = df[cat_col].str.title()
+            if st.button("Apply standardization", type="primary"):
+                before_df = df.copy()
+                if std_action == "Trim whitespace":
+                    df[selected_cat_col] = df[selected_cat_col].str.strip()
+                elif std_action == "Lower case":
+                    df[selected_cat_col] = df[selected_cat_col].str.lower()
+                elif std_action == "Title case":
+                    df[selected_cat_col] = df[selected_cat_col].str.title()
 
-                    st.session_state.df_working = df
-                    st.session_state.transform_log.append({
-                        "step": "standardize_categorical",
-                        "column": cat_col,
-                        "action": std_action,
-                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                    })
-                    show_preview(before_df, df, "Standardization")
-                    st.success(f"Applied {std_action} to column '{cat_col}'")
-                    st.rerun()
+                st.session_state.df_working = df
+                st.session_state.transform_log.append({
+                    "step": "standardize_categorical",
+                    "column": selected_cat_col,
+                    "action": std_action,
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                })
+                show_preview(before_df, df, "Standardization")
+                st.success(f"Applied {std_action} to '{selected_cat_col}'")
+                st.rerun()
 
-                # 2. Rare category grouping
-                st.markdown("**2. Group rare categories into 'Other'**")
-                min_freq = st.slider("Minimum frequency (below this → 'Other')", 1, 100, 10, key=f"rare_freq_{cat_col}")
-                if st.button("Group rare categories into 'Other'", type="primary", key=f"rare_btn_{cat_col}"):
-                    before_df = df.copy()
-                    counts = df[cat_col].value_counts()
-                    rare = counts[counts < min_freq].index
-                    df[cat_col] = df[cat_col].replace(rare, "Other")
+            # 2. Rare category grouping
+            st.markdown("**2. Group rare categories into 'Other'**")
+            min_freq = st.slider("Minimum frequency (below this → 'Other')", 1, 100, 10)
+            if st.button("Group rare categories into 'Other'", type="primary"):
+                before_df = df.copy()
+                counts = df[selected_cat_col].value_counts()
+                rare = counts[counts < min_freq].index
+                df[selected_cat_col] = df[selected_cat_col].replace(rare, "Other")
 
-                    st.session_state.df_working = df
-                    st.session_state.transform_log.append({
-                        "step": "group_rare_categories",
-                        "column": cat_col,
-                        "min_freq": min_freq,
-                        "rare_categories": len(rare),
-                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                    })
-                    show_preview(before_df, df, "Rare grouping")
-                    st.success(f"Grouped {len(rare)} rare categories into 'Other' in '{cat_col}'")
-                    st.rerun()
+                st.session_state.df_working = df
+                st.session_state.transform_log.append({
+                    "step": "group_rare_categories",
+                    "column": selected_cat_col,
+                    "min_freq": min_freq,
+                    "rare_categories": len(rare),
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                })
+                show_preview(before_df, df, "Rare grouping")
+                st.success(f"Grouped {len(rare)} rare categories into 'Other'")
+                st.rerun()
 
-                # 3. Value Mapping
-                st.markdown("**3. Value mapping / replacement**")
-                mapping_input = st.text_area(
-                    "Enter mapping (format: old_value:new_value, one per line)",
-                    value="old_value1:new_value1\nold_value2:new_value2",
-                    height=100,
-                    key=f"mapping_text_{cat_col}"
-                )
+            # 3. Value Mapping — отдельный выбор колонки
+            st.markdown("**3. Value mapping / replacement**")
+            mapping_col = st.selectbox(
+                "Select column for mapping",
+                options=cat_cols,
+                key="mapping_col_select"
+            )
 
-                if mapping_input and st.button("Apply mapping", type="primary", key=f"mapping_btn_{cat_col}"):
-                    before_df = df.copy()
-                    mapping_dict = {}
-                    for line in mapping_input.strip().split("\n"):
-                        if ":" in line:
-                            old, new = line.split(":", 1)
-                            mapping_dict[old.strip()] = new.strip()
+            mapping_input = st.text_area(
+                "Enter mapping (old_value:new_value, one per line)",
+                value="old_value1:new_value1\nold_value2:new_value2",
+                height=100
+            )
 
-                    df[cat_col] = df[cat_col].replace(mapping_dict)
-                    changed = (before_df[cat_col] != df[cat_col]).sum()
+            if mapping_input and st.button("Apply mapping", type="primary"):
+                before_df = df.copy()
+                mapping_dict = {}
+                for line in mapping_input.strip().split("\n"):
+                    if ":" in line:
+                        old, new = line.split(":", 1)
+                        mapping_dict[old.strip()] = new.strip()
 
-                    st.session_state.df_working = df
-                    st.session_state.transform_log.append({
-                        "step": "value_mapping",
-                        "column": cat_col,
-                        "mapping": mapping_dict,
-                        "changed_values": changed,
-                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                    })
-                    show_preview(before_df, df, "Value mapping")
-                    st.success(f"Applied mapping to '{cat_col}'. Changed {changed} values.")
-                    st.rerun()
+                df[mapping_col] = df[mapping_col].replace(mapping_dict)
+                changed = (before_df[mapping_col] != df[mapping_col]).sum()
 
-                # 4. One-hot encoding
-                st.markdown("**4. One-hot encoding (optional)**")
-                if st.button("One-hot encode this column", type="primary", key=f"onehot_btn_{cat_col}"):
-                    before_df = df.copy()
-                    one_hot = pd.get_dummies(df[cat_col], prefix=cat_col, prefix_sep="_")
-                    df = pd.concat([df.drop(columns=[cat_col]), one_hot], axis=1)
+                st.session_state.df_working = df
+                st.session_state.transform_log.append({
+                    "step": "value_mapping",
+                    "column": mapping_col,
+                    "mapping": mapping_dict,
+                    "changed_values": changed,
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                })
+                show_preview(before_df, df, "Value mapping")
+                st.success(f"Applied mapping to '{mapping_col}'. Changed {changed} values.")
+                st.rerun()
 
-                    st.session_state.df_working = df
-                    st.session_state.transform_log.append({
-                        "step": "one_hot_encoding",
-                        "column": cat_col,
-                        "new_columns": list(one_hot.columns),
-                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                    })
-                    show_preview(before_df, df, "One-hot encoding")
-                    st.success(f"One-hot encoded '{cat_col}'. Added {len(one_hot.columns)} new columns.")
-                    st.rerun()
+            # 4. One-hot encoding
+            st.markdown("**4. One-hot encoding (optional)**")
+            if st.button("One-hot encode selected column", type="primary"):
+                before_df = df.copy()
+                one_hot = pd.get_dummies(df[selected_cat_col], prefix=selected_cat_col, prefix_sep="_")
+                df = pd.concat([df.drop(columns=[selected_cat_col]), one_hot], axis=1)
+
+                st.session_state.df_working = df
+                st.session_state.transform_log.append({
+                    "step": "one_hot_encoding",
+                    "column": selected_cat_col,
+                    "new_columns": list(one_hot.columns),
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                })
+                show_preview(before_df, df, "One-hot encoding")
+                st.success(f"One-hot encoded '{selected_cat_col}'. Added {len(one_hot.columns)} new columns.")
+                st.rerun()
 
 
 
