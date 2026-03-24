@@ -706,15 +706,16 @@ elif page == "B. Cleaning & Preparation":
 
 
         # 4.5 Numeric Cleaning - Outlier Handling
+                # 4.5 Numeric Cleaning (Outliers)
         with st.expander("4.5 Numeric Cleaning (Outliers)", expanded=False):
             st.subheader("Outlier Detection & Handling")
 
             numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
 
             if not numeric_cols:
-                st.warning("No numeric columns found in the dataset.")
+                st.warning("No numeric columns found.")
             else:
-                col_for_outliers = st.selectbox("Select numeric column for outlier handling", numeric_cols)
+                col_for_outliers = st.selectbox("Select numeric column", numeric_cols)
 
                 method = st.radio("Outlier detection method", ["IQR Method (recommended)", "Z-Score"], horizontal=True)
 
@@ -722,42 +723,37 @@ elif page == "B. Cleaning & Preparation":
                     q1 = df[col_for_outliers].quantile(0.25)
                     q3 = df[col_for_outliers].quantile(0.75)
                     iqr = q3 - q1
-                    lower_bound = q1 - 1.5 * iqr
-                    upper_bound = q3 + 1.5 * iqr
-                    outliers_count = ((df[col_for_outliers] < lower_bound) | (df[col_for_outliers] > upper_bound)).sum()
+                    lower = q1 - 1.5 * iqr
+                    upper = q3 + 1.5 * iqr
+                    outliers_count = ((df[col_for_outliers] < lower) | (df[col_for_outliers] > upper)).sum()
                     st.metric("Outliers detected (IQR)", outliers_count)
-                    st.info(f"Lower bound: {lower_bound:.2f} | Upper bound: {upper_bound:.2f}")
-
-                else:  # Z-Score
-                    z_scores = np.abs((df[col_for_outliers] - df[col_for_outliers].mean()) / df[col_for_outliers].std())
-                    outliers_count = (z_scores > 3).sum()
+                else:
+                    mean = df[col_for_outliers].mean()
+                    std = df[col_for_outliers].std()
+                    z = np.abs((df[col_for_outliers] - mean) / std)
+                    outliers_count = (z > 3).sum()
                     st.metric("Outliers detected (Z-Score > 3)", outliers_count)
 
                 action = st.radio("Action for outliers", 
-                                ["Do nothing", 
-                                 "Cap (Winsorize) at bounds", 
-                                 "Remove outlier rows"], 
+                                ["Do nothing", "Cap (Winsorize) at bounds", "Remove outlier rows"], 
                                 horizontal=True)
 
                 if action != "Do nothing" and st.button("Apply outlier handling", type="primary"):
                     before_df = df.copy()
+
                     if action == "Cap (Winsorize) at bounds":
                         if method == "IQR Method (recommended)":
-                            df[col_for_outliers] = df[col_for_outliers].clip(lower=lower_bound, upper=upper_bound)
+                            df[col_for_outliers] = df[col_for_outliers].clip(lower=lower, upper=upper)
                         else:
-                            df[col_for_outliers] = df[col_for_outliers].clip(
-                                lower=df[col_for_outliers].mean() - 3*df[col_for_outliers].std(),
-                                upper=df[col_for_outliers].mean() + 3*df[col_for_outliers].std()
-                            )
-                        st.success(f"Outliers capped in '{col_for_outliers}'")
-                    else:  # Remove outlier rows
+                            df[col_for_outliers] = df[col_for_outliers].clip(lower=mean-3*std, upper=mean+3*std)
+                    else:  # Remove
                         if method == "IQR Method (recommended)":
-                            df = df[(df[col_for_outliers] >= lower_bound) & (df[col_for_outliers] <= upper_bound)]
+                            df = df[(df[col_for_outliers] >= lower) & (df[col_for_outliers] <= upper)]
                         else:
-                            df = df[z_scores <= 3]
-                        st.success(f"Removed {before_df.shape[0] - df.shape[0]} outlier rows")
+                            df = df[z <= 3]
 
                     st.session_state.df_working = df
+
                     st.session_state.transform_log.append({
                         "step": "outlier_handling",
                         "column": col_for_outliers,
@@ -768,7 +764,11 @@ elif page == "B. Cleaning & Preparation":
                         "rows_after": df.shape[0],
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
-                    show_preview(before_df, df, "Outlier Handling")
+
+                    # Показываем превью
+                    show_preview(before_df, df, f"Outlier Handling - {col_for_outliers}", highlight_col=col_for_outliers)
+
+                    st.success(f"Operation completed on '{col_for_outliers}'")
                     st.rerun()
 
         # 4.6 Normalization / Scaling
