@@ -180,13 +180,13 @@ elif page == "B. Cleaning & Preparation":
     else:
         df = st.session_state.df_working
        
-                # ==================== УЛУЧШЕННАЯ ФУНКЦИЯ ПРЕВЬЮ ====================
+               # ==================== УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ПРЕВЬЮ ====================
         def show_preview(before_df, after_df, action_name, column=None):
             st.markdown(f"### 📊 Preview: {action_name}")
             
-            col1, col2 = st.columns(2)
+            c1, c2 = st.columns(2)
             
-            with col1:
+            with c1:
                 st.markdown("**Before**")
                 st.metric("Rows", before_df.shape[0])
                 if column and column in before_df.columns:
@@ -194,7 +194,7 @@ elif page == "B. Cleaning & Preparation":
                 else:
                     st.dataframe(before_df.head(10), use_container_width=True)
             
-            with col2:
+            with c2:
                 st.markdown("**After**")
                 st.metric("Rows", after_df.shape[0])
                 if column and column in after_df.columns:
@@ -203,7 +203,7 @@ elif page == "B. Cleaning & Preparation":
                     st.dataframe(after_df.head(10), use_container_width=True)
             
             st.divider()
-        # ===================================================================
+        # =====================================================================
         
         
         # Preview before/after helper
@@ -705,7 +705,6 @@ elif page == "B. Cleaning & Preparation":
 
 
 
-        # 4.5 Numeric Cleaning - Outlier Handling
                 # 4.5 Numeric Cleaning (Outliers)
         with st.expander("4.5 Numeric Cleaning (Outliers)", expanded=False):
             st.subheader("Outlier Detection & Handling")
@@ -746,7 +745,7 @@ elif page == "B. Cleaning & Preparation":
                             df[col_for_outliers] = df[col_for_outliers].clip(lower=lower, upper=upper)
                         else:
                             df[col_for_outliers] = df[col_for_outliers].clip(lower=mean-3*std, upper=mean+3*std)
-                    else:  # Remove
+                    else:  # Remove rows
                         if method == "IQR Method (recommended)":
                             df = df[(df[col_for_outliers] >= lower) & (df[col_for_outliers] <= upper)]
                         else:
@@ -765,7 +764,7 @@ elif page == "B. Cleaning & Preparation":
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
 
-                    
+                    # Правильный вызов превью
                     show_preview(before_df, df, f"Outlier Handling - {col_for_outliers}", column=col_for_outliers)
 
                     st.success(f"Operation completed on '{col_for_outliers}'")
