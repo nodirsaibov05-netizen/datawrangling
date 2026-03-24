@@ -390,23 +390,20 @@ elif page == "B. Cleaning & Preparation":
 
 
 
-        # 4.2 Duplicates
-                # 4.2 Duplicates
+               # 4.2 Duplicates
         with st.expander("4.2 Duplicates", expanded=False):
             st.subheader("Duplicate Detection & Removal")
 
-            # Full row duplicates
             full_dups = df.duplicated().sum()
             st.metric("Full row duplicates (completely identical rows)", full_dups)
 
-            # Subset duplicates
             st.markdown("**Detect and remove duplicates by selected columns**")
 
             subset_cols = st.multiselect(
                 "Select columns to check for duplicates",
                 options=df.columns.tolist(),
-                default=[],                     # пустой по умолчанию — безопасно
-                help="Choose one or more columns. The more columns you select, the fewer duplicates will be found."
+                default=[],
+                help="Choose one or more columns. The more columns — the fewer duplicates will be found."
             )
 
             if subset_cols:
@@ -415,17 +412,13 @@ elif page == "B. Cleaning & Preparation":
 
                 if subset_dups > 0:
                     before_df = df.copy()
-                    keep = st.radio("Which duplicate to keep?", ["first", "last"], index=0)
+                    keep = st.radio("Which duplicate to keep?", ["first", "last"], index=0, key="keep_radio")
 
-                    # Безопасность: предупреждение при выборе малого количества колонок
                     if len(subset_cols) == 1:
-                        st.warning("⚠️ Warning: You selected only 1 column. This may remove a large portion of your data. Are you sure?")
-                    elif len(subset_cols) == 0:
-                        st.info("Please select at least one column to detect duplicates.")
+                        st.warning("⚠️ Warning: You selected only 1 column. This may remove a large portion of your data.")
 
-                    if st.button(f"Remove duplicates (keep {keep})", type="primary"):
+                    if st.button(f"Remove duplicates (keep {keep})", type="primary", key="remove_dups_button"):
                         df = df.drop_duplicates(subset=subset_cols, keep=keep)
-                        
                         removed = before_df.shape[0] - df.shape[0]
 
                         st.session_state.df_working = df
@@ -443,8 +436,8 @@ elif page == "B. Cleaning & Preparation":
                         st.success(f"Removed {removed} duplicate rows. New shape: {df.shape[0]} rows")
                         st.rerun()
 
-            # Показать примеры дубликатов
-            if st.button("Show duplicate groups (first 10 rows)"):
+            # Show duplicate groups — с уникальным ключом!
+            if st.button("Show duplicate groups (first 10 rows)", key="show_dups_button"):
                 if subset_cols:
                     dups_df = df[df.duplicated(subset=subset_cols, keep=False)].head(10)
                 else:
@@ -456,16 +449,9 @@ elif page == "B. Cleaning & Preparation":
                     st.info("No duplicates found with current selection.")
 
             st.caption("💡 Tip: Selecting more columns = fewer duplicates will be removed.")
-           
-            
-            # Show duplicate groups
-            if full_dups > 0 or (subset_cols and subset_dups > 0):
-                if st.button("Show duplicate groups (first 10 rows)"):
-                    if subset_cols:
-                        st.dataframe(df[df.duplicated(subset=subset_cols, keep=False)].head(10), use_container_width=True)
-                    else:
-                        st.dataframe(df[df.duplicated(keep=False)].head(10), use_container_width=True)
 
+       
+        
         # 4.3 Data Types & Parsing
         with st.expander("4.3 Data Types & Parsing", expanded=False):
             st.subheader("Change column type")
