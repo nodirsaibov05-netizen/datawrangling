@@ -703,16 +703,16 @@ elif page == "B. Cleaning & Preparation":
 
 
                         # 4.5 Numeric Cleaning (Outliers)
-                # 4.5 Numeric Cleaning (Outliers)
+                        
         with st.expander("4.5 Numeric Cleaning (Outliers)", expanded=False):
             st.subheader("Outlier Detection & Handling")
 
             numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
 
             if not numeric_cols:
-                st.warning("No numeric columns found.")
+                st.warning("No numeric columns found in the dataset.")
             else:
-                col_for_outliers = st.selectbox("Select numeric column", numeric_cols)
+                col_for_outliers = st.selectbox("Select numeric column for outlier handling", numeric_cols)
 
                 method = st.radio("Outlier detection method", ["IQR Method (recommended)", "Z-Score"], horizontal=True)
 
@@ -724,6 +724,7 @@ elif page == "B. Cleaning & Preparation":
                     upper = q3 + 1.5 * iqr
                     outliers_count = ((df[col_for_outliers] < lower) | (df[col_for_outliers] > upper)).sum()
                     st.metric("Outliers detected (IQR)", outliers_count)
+                    st.info(f"Lower bound: {lower:.2f} | Upper bound: {upper:.2f}")
                 else:
                     mean = df[col_for_outliers].mean()
                     std = df[col_for_outliers].std()
@@ -732,22 +733,28 @@ elif page == "B. Cleaning & Preparation":
                     st.metric("Outliers detected (Z-Score > 3)", outliers_count)
 
                 action = st.radio("Action for outliers", 
-                                ["Do nothing", "Cap (Winsorize) at bounds", "Remove outlier rows"], 
+                                ["Do nothing", 
+                                 "Cap (Winsorize) at bounds", 
+                                 "Remove outlier rows"], 
                                 horizontal=True)
 
                 if action != "Do nothing" and st.button("Apply outlier handling", type="primary"):
                     before_df = df.copy()
+                    rows_before = before_df.shape[0]
 
                     if action == "Cap (Winsorize) at bounds":
                         if method == "IQR Method (recommended)":
                             df[col_for_outliers] = df[col_for_outliers].clip(lower=lower, upper=upper)
                         else:
                             df[col_for_outliers] = df[col_for_outliers].clip(lower=mean-3*std, upper=mean+3*std)
-                    else:  # Remove rows
+                        st.success(f"Outliers capped in column '{col_for_outliers}'. {outliers_count} values adjusted.")
+                    else:  # Remove outlier rows
                         if method == "IQR Method (recommended)":
                             df = df[(df[col_for_outliers] >= lower) & (df[col_for_outliers] <= upper)]
                         else:
                             df = df[z <= 3]
+                        removed = rows_before - df.shape[0]
+                        st.success(f"Removed {removed} outlier rows from column '{col_for_outliers}'.")
 
                     st.session_state.df_working = df
 
@@ -757,27 +764,17 @@ elif page == "B. Cleaning & Preparation":
                         "method": method,
                         "action": action,
                         "outliers_affected": outliers_count,
-                        "rows_before": before_df.shape[0],
+                        "rows_before": rows_before,
                         "rows_after": df.shape[0],
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
 
-                    # ПРОСТОЙ ПРЕВЬЮ БЕЗ ФУНКЦИИ
-                    st.markdown(f"### 📊 Changes Preview: {action} on {col_for_outliers}")
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.markdown("**Before**")
-                        st.metric("Rows", before_df.shape[0])
-                        st.dataframe(before_df[[col_for_outliers]].head(10), use_container_width=True)
-                    with c2:
-                        st.markdown("**After**")
-                        st.metric("Rows", df.shape[0])
-                        st.dataframe(df[[col_for_outliers]].head(10), use_container_width=True)
-
-                    st.success(f"Operation completed on '{col_for_outliers}'")
+                    st.metric("Rows before", rows_before)
+                    st.metric("Rows after", df.shape[0])
                     st.rerun()
 
         # 4.6 Normalization / Scaling
+                
         with st.expander("4.6 Normalization / Scaling", expanded=False):
             st.subheader("Normalization and Scaling")
 
@@ -786,42 +783,51 @@ elif page == "B. Cleaning & Preparation":
             if not numeric_cols:
                 st.warning("No numeric columns available for scaling.")
             else:
-                scaling_method = st.radio("Scaling method", ["Min-Max Scaling", "Z-Score Standardization"], horizontal=True)
+                scaling_method = st.radio("Scaling method", 
+                                        ["Min-Max Scaling (0 to 1)", 
+                                         "Z-Score Standardization"], 
+                                        horizontal=True)
 
                 cols_to_scale = st.multiselect(
                     "Select numeric columns to scale",
                     options=numeric_cols,
-                    default=numeric_cols[:3] if len(numeric_cols) >= 3 else numeric_cols
+                    default=numeric_cols[:min(3, len(numeric_cols))]
                 )
 
                 if cols_to_scale and st.button("Apply scaling", type="primary"):
                     before_df = df.copy()
+                    rows_before = before_df.shape[0]
 
-                    if scaling_method == "Min-Max Scaling":
-                        from sklearn.preprocessing import MinMaxScaler
-                        scaler = MinMaxScaler()
-                        df[cols_to_scale] = scaler.fit_transform(df[cols_to_scale])
-                        st.success(f"Min-Max scaling applied to {len(cols_to_scale)} columns")
+                    if scaling_method == "Min-Max Scaling (0 to 1)":
+                        for col in cols_to_scale:
+                            min_val = df[col].min()
+                            max_val = df[col].max()
+                            if max_val > min_val:
+                                df[col] = (df[col] - min_val) / (max_val - min_val)
+                        st.success(f"Min-Max scaling applied to {len(cols_to_scale)} columns (values now between 0 and 1)")
 
                     else:  # Z-Score Standardization
-                        from sklearn.preprocessing import StandardScaler
-                        scaler = StandardScaler()
-                        df[cols_to_scale] = scaler.fit_transform(df[cols_to_scale])
-                        st.success(f"Z-Score standardization applied to {len(cols_to_scale)} columns")
+                        for col in cols_to_scale:
+                            mean = df[col].mean()
+                            std = df[col].std()
+                            if std > 0:
+                                df[col] = (df[col] - mean) / std
+                        st.success(f"Z-Score standardization applied to {len(cols_to_scale)} columns (mean ≈ 0, std ≈ 1)")
 
                     st.session_state.df_working = df
+
                     st.session_state.transform_log.append({
                         "step": "scaling",
                         "method": scaling_method,
                         "columns": cols_to_scale,
-                        "rows_before": before_df.shape[0],
+                        "rows_before": rows_before,
                         "rows_after": df.shape[0],
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
-                    show_preview(before_df, df, f"{scaling_method}")
-                    st.rerun()
 
-                st.caption("Note: Scaling is applied only to selected numeric columns. Original values can be seen in Before/After preview.")
+                    st.metric("Rows before", rows_before)
+                    st.metric("Rows after", df.shape[0])
+                    st.rerun()
 
 
 
