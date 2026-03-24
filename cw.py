@@ -765,8 +765,8 @@ elif page == "B. Cleaning & Preparation":
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
 
-                    # Показываем превью
-                    show_preview(before_df, df, f"Outlier Handling - {col_for_outliers}", highlight_col=col_for_outliers)
+                    
+                    show_preview(before_df, df, f"Outlier Handling - {col_for_outliers}", column=col_for_outliers)
 
                     st.success(f"Operation completed on '{col_for_outliers}'")
                     st.rerun()
