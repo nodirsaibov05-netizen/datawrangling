@@ -179,6 +179,33 @@ elif page == "B. Cleaning & Preparation":
         st.warning("Please upload a dataset first on the Upload & Overview page.")
     else:
         df = st.session_state.df_working
+       
+                # ==================== УЛУЧШЕННАЯ ФУНКЦИЯ ПРЕВЬЮ ====================
+        def show_preview(before_df, after_df, action_name, column=None):
+            st.markdown(f"### 📊 Preview: {action_name}")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**Before**")
+                st.metric("Rows", before_df.shape[0])
+                if column and column in before_df.columns:
+                    st.dataframe(before_df[[column]].head(10), use_container_width=True)
+                else:
+                    st.dataframe(before_df.head(10), use_container_width=True)
+            
+            with col2:
+                st.markdown("**After**")
+                st.metric("Rows", after_df.shape[0])
+                if column and column in after_df.columns:
+                    st.dataframe(after_df[[column]].head(10), use_container_width=True)
+                else:
+                    st.dataframe(after_df.head(10), use_container_width=True)
+            
+            st.divider()
+        # ===================================================================
+        
+        
         # Preview before/after helper
         def show_preview(before_df, after_df, action_name):
             col1, col2 = st.columns(2)
