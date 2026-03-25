@@ -878,30 +878,58 @@ elif page == "B. Cleaning & Preparation":
                     st.success(f"Dropped {len(cols_to_drop)} columns")
                     st.rerun()
 
-            # 3. Create new column with formula
+                        # 3. Create new column with formula (универсальная версия)
             elif operation == "Create new column (formula)":
                 st.markdown("**Create new column using formula**")
-                new_col_name = st.text_input("New column name", value="new_column")
-                formula = st.text_input("Formula (use column names)", 
-                                      value="colA / colB", 
-                                      help="Examples: colA + colB, colA * 2, log(colA), colA - mean(colA)")
-                
+
+                new_col_name = st.text_input("New column name", value="new_feature")
+
+                formula = st.text_input(
+                    "Enter formula",
+                    value="`Engine HP` / 100",
+                    help="""Поддерживаются:
+:
+`MSRP` * 0.8
+`Engine HP` / `Engine Cylinders`
+log(`Popularity` + 1)
+`City mpg` - `Highway MPG`"""
+                )
+
                 if st.button("Create new column", type="primary"):
                     try:
                         before_df = df.copy()
-                        # Безопасное вычисление формулы
-                        df[new_col_name] = df.eval(formula)
+
+                        # Универсальный способ: заменяем пробелы на подчёркивания временно
+                        temp_df = df.copy()
+                        temp_col_map = {col: col.replace(" ", "_").replace("-", "_") for col in df.columns}
+                        temp_df = temp_df.rename(columns=temp_col_map)
+
+                        # Заменяем в формуле названия колонок
+                        safe_formula = formula
+                        for original, safe in temp_col_map.items():
+                            safe_formula = safe_formula.replace(f"`{original}`", safe)
+
+                        # Вычисляем формулу
+                        temp_df[new_col_name] = temp_df.eval(safe_formula, engine='python')
+
+                        # Возвращаем оригинальные названия колонок
+                        df = temp_df.rename(columns={v: k for k, v in temp_col_map.items()})
+
                         st.session_state.df_working = df
+
                         st.session_state.transform_log.append({
                             "step": "create_new_column",
                             "column": new_col_name,
                             "formula": formula,
                             "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
-                        st.success(f"Created new column '{new_col_name}' using formula: {formula}")
+
+                        st.success(f"✅ Successfully created new column: **{new_col_name}**")
                         st.rerun()
+
                     except Exception as e:
                         st.error(f"Formula error: {str(e)}")
+                        st.info("💡 Tip: Use backticks around column names with spaces, e.g. `Engine HP` / 100")
 
             # 4. Binning (разбиение на категории)
             elif operation == "Binning numeric column":
