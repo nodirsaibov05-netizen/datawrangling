@@ -984,9 +984,7 @@ elif page == "B. Cleaning & Preparation":
 elif page == "C. Visualization Builder":
     st.title("📊 C. Visualization Builder")
 
-    if not is_data_loaded():
-        st.warning("⚠️ Please upload data on Page A first.")
-    else:
+    
         df_source = st.session_state.df_working.copy()
         filename = st.session_state.file_name
 
