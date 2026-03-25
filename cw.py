@@ -946,7 +946,75 @@ elif page == "B. Cleaning & Preparation":
                     st.success(f"Created binned column '{new_bin_col}' with {n_bins} bins")
                     st.rerun()
 
+                 # 4.8 Data Validation Rules
+        with st.expander("4.8 Data Validation Rules", expanded=False):
+            st.subheader("Data Validation Rules")
 
+            # Инициализация хранилища нарушений (если ещё нет)
+            if "validation_results" not in st.session_state:
+                st.session_state.validation_results = pd.DataFrame()
+
+            validation_type = st.radio("Choose validation rule type", 
+                                     ["Numeric range check", 
+                                      "Allowed categories", 
+                                      "Non-null constraint"],
+                                     horizontal=True)
+
+            # 1. Numeric range check
+            if validation_type == "Numeric range check":
+                numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+                col = st.selectbox("Select numeric column", numeric_cols)
+                min_val = st.number_input("Minimum allowed value", value=float(df[col].min()))
+                max_val = st.number_input("Maximum allowed value", value=float(df[col].max()))
+
+                if st.button("Apply numeric range check", type="primary"):
+                    violations = df[(df[col] < min_val) | (df[col] > max_val)].copy()
+                    violations["Violation Type"] = f"{col} out of range ({min_val} - {max_val})"
+                    st.session_state.validation_results = violations
+                    st.success(f"Found {len(violations)} violations in '{col}'")
+
+            # 2. Allowed categories
+            elif validation_type == "Allowed categories":
+                cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+                col = st.selectbox("Select categorical column", cat_cols)
+                allowed = st.text_area("Allowed categories (one per line)", height=120)
+
+                if st.button("Apply allowed categories check", type="primary"):
+                    allowed_list = [x.strip() for x in allowed.strip().split("\n") if x.strip()]
+                    violations = df[~df[col].isin(allowed_list)].copy()
+                    violations["Violation Type"] = f"{col} not in allowed list"
+                    st.session_state.validation_results = violations
+                    st.success(f"Found {len(violations)} violations in '{col}'")
+
+            # 3. Non-null constraint
+            elif validation_type == "Non-null constraint":
+                cols = st.multiselect("Select columns that must not be null", options=df.columns.tolist())
+
+                if st.button("Apply non-null check", type="primary"):
+                    violations = df[df[cols].isnull().any(axis=1)].copy()
+                    violations["Violation Type"] = "Missing values in required columns"
+                    st.session_state.validation_results = violations
+                    st.success(f"Found {len(violations)} rows with missing values")
+
+            # ====================== VIOLATIONS TABLE ======================
+            st.divider()
+            st.subheader("Violations Table")
+
+            if st.session_state.validation_results.empty:
+                st.info("No violations detected yet. Run a validation rule above.")
+            else:
+                st.dataframe(st.session_state.validation_results, use_container_width=True)
+
+                # Кнопка скачивания нарушений
+                csv_violations = st.session_state.validation_results.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Download Violations Table (CSV)",
+                    data=csv_violations,
+                    file_name="data_violations.csv",
+                    mime="text/csv"
+                )
+
+            st.caption("This table shows all rows that violate the defined rules.")
 
 # # Заглушки для остальных страниц
 # elif page == "C. Visualization Builder":
