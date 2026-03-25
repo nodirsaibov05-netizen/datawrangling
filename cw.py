@@ -349,16 +349,18 @@ elif page == "B. Cleaning & Preparation":
         with st.expander("4.2 Duplicates", expanded=False):
             st.subheader("Duplicate Detection & Removal")
 
+            # Full row duplicates
             full_dups = df.duplicated().sum()
             st.metric("Full row duplicates (completely identical rows)", full_dups)
 
+            # Subset duplicates
             st.markdown("**Detect and remove duplicates by selected columns**")
 
             subset_cols = st.multiselect(
                 "Select columns to check for duplicates",
                 options=df.columns.tolist(),
                 default=[],
-                help="Choose one or more columns. The more columns — the fewer duplicates will be found."
+                help="The more columns you select, the fewer duplicates will be found."
             )
 
             if subset_cols:
@@ -367,16 +369,18 @@ elif page == "B. Cleaning & Preparation":
 
                 if subset_dups > 0:
                     before_df = df.copy()
-                    keep = st.radio("Which duplicate to keep?", ["first", "last"], index=0, key="keep_radio")
+
+                    keep = st.radio("Which duplicate to keep?", ["first", "last"], index=0)
 
                     if len(subset_cols) == 1:
-                        st.warning("⚠️ Warning: You selected only 1 column. This may remove a large portion of your data.")
+                        st.warning("⚠️ You selected only 1 column. This may remove a large number of rows.")
 
-                    if st.button(f"Remove duplicates (keep {keep})", type="primary", key="remove_dups_button"):
+                    if st.button(f"Remove duplicates (keep {keep})", type="primary"):
                         df = df.drop_duplicates(subset=subset_cols, keep=keep)
                         removed = before_df.shape[0] - df.shape[0]
 
                         st.session_state.df_working = df
+
                         st.session_state.transform_log.append({
                             "step": "remove_duplicates",
                             "subset": subset_cols,
@@ -387,12 +391,23 @@ elif page == "B. Cleaning & Preparation":
                             "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
 
-                        show_preview(before_df, df, "Remove duplicates")
-                        st.success(f"Removed {removed} duplicate rows. New shape: {df.shape[0]} rows")
-                        st.rerun()
+                        # Показываем Before / After
+                        st.markdown(f"### 📊 Preview: Remove duplicates")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.markdown("**Before**")
+                            st.metric("Rows", before_df.shape[0])
+                            st.dataframe(before_df.head(10), use_container_width=True)
+                        with c2:
+                            st.markdown("**After**")
+                            st.metric("Rows", df.shape[0])
+                            st.dataframe(df.head(10), use_container_width=True)
 
-            # Show duplicate groups — с уникальным ключом!
-            if st.button("Show duplicate groups (first 10 rows)", key="show_dups_button"):
+                        st.success(f"Removed {removed} duplicate rows")
+                        # st.rerun()  ← Убрали, чтобы превью осталось видимым
+
+            # Show duplicate groups
+            if st.button("Show duplicate groups (first 10 rows)"):
                 if subset_cols:
                     dups_df = df[df.duplicated(subset=subset_cols, keep=False)].head(10)
                 else:
