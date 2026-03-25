@@ -987,7 +987,7 @@ elif page == "C. Visualization Builder":
 
         # ==================== КОД НАПАРНИКА (Filter + Charts) ====================
         # FILTER SECTION
-        st.subheader("🔽 Filter Data (Optional)")
+        
         with st.expander("Apply Filters", expanded=False):
             filtered_df = df_source.copy()
             all_columns = df_source.columns.tolist()
