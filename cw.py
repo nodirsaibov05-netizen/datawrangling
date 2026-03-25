@@ -829,7 +829,112 @@ elif page == "B. Cleaning & Preparation":
                     st.metric("Rows after", df.shape[0])
                     st.rerun()
 
+        # 4.7 Column Operations
+        with st.expander("4.7 Column Operations", expanded=False):
+            st.subheader("Column Operations")
 
+            operation = st.radio("Choose operation", 
+                               ["Rename columns", 
+                                "Drop columns", 
+                                "Create new column (formula)", 
+                                "Binning numeric column"],
+                               horizontal=True)
+
+            # 1. Rename columns
+            if operation == "Rename columns":
+                st.markdown("**Rename columns**")
+                rename_dict = {}
+                for col in df.columns:
+                    new_name = st.text_input(f"Rename '{col}' to:", value=col, key=f"rename_{col}")
+                    if new_name != col:
+                        rename_dict[col] = new_name
+                
+                if rename_dict and st.button("Apply renaming", type="primary"):
+                    before_df = df.copy()
+                    df = df.rename(columns=rename_dict)
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "rename_columns",
+                        "mapping": rename_dict,
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    st.success(f"Renamed {len(rename_dict)} columns")
+                    st.rerun()
+
+            # 2. Drop columns
+            elif operation == "Drop columns":
+                st.markdown("**Drop columns**")
+                cols_to_drop = st.multiselect("Select columns to drop", options=df.columns.tolist())
+                
+                if cols_to_drop and st.button("Drop selected columns", type="primary"):
+                    before_df = df.copy()
+                    df = df.drop(columns=cols_to_drop)
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "drop_columns",
+                        "columns": cols_to_drop,
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    st.success(f"Dropped {len(cols_to_drop)} columns")
+                    st.rerun()
+
+            # 3. Create new column with formula
+            elif operation == "Create new column (formula)":
+                st.markdown("**Create new column using formula**")
+                new_col_name = st.text_input("New column name", value="new_column")
+                formula = st.text_input("Formula (use column names)", 
+                                      value="colA / colB", 
+                                      help="Examples: colA + colB, colA * 2, log(colA), colA - mean(colA)")
+                
+                if st.button("Create new column", type="primary"):
+                    try:
+                        before_df = df.copy()
+                        # Безопасное вычисление формулы
+                        df[new_col_name] = df.eval(formula)
+                        st.session_state.df_working = df
+                        st.session_state.transform_log.append({
+                            "step": "create_new_column",
+                            "column": new_col_name,
+                            "formula": formula,
+                            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                        })
+                        st.success(f"Created new column '{new_col_name}' using formula: {formula}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Formula error: {str(e)}")
+
+            # 4. Binning (разбиение на категории)
+            elif operation == "Binning numeric column":
+                st.markdown("**Binning numeric column**")
+                num_col = st.selectbox("Select numeric column to bin", numeric_cols)
+                bin_method = st.radio("Binning method", ["Equal width bins", "Quantile bins (equal frequency)"])
+                
+                if bin_method == "Equal width bins":
+                    n_bins = st.slider("Number of bins", 2, 20, 5)
+                else:
+                    n_bins = st.slider("Number of quantiles", 2, 10, 4)
+                
+                new_bin_col = st.text_input("Name for binned column", value=f"{num_col}_binned")
+                
+                if st.button("Apply binning", type="primary"):
+                    before_df = df.copy()
+                    
+                    if bin_method == "Equal width bins":
+                        df[new_bin_col] = pd.cut(df[num_col], bins=n_bins, labels=[f"Bin_{i}" for i in range(n_bins)])
+                    else:
+                        df[new_bin_col] = pd.qcut(df[num_col], q=n_bins, labels=[f"Q{i+1}" for i in range(n_bins)])
+                    
+                    st.session_state.df_working = df
+                    st.session_state.transform_log.append({
+                        "step": "binning",
+                        "column": num_col,
+                        "new_column": new_bin_col,
+                        "method": bin_method,
+                        "bins": n_bins,
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    st.success(f"Created binned column '{new_bin_col}' with {n_bins} bins")
+                    st.rerun()
 
 
 
