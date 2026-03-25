@@ -226,8 +226,10 @@ elif page == "B. Cleaning & Preparation":
         st.metric("Rows × Columns", f"{df.shape[0]:,} × {df.shape[1]}")
 
         
-                # 4.1 Missing Values Handling
+                
+                # 4.1 Missing Values (Null Handling)
         with st.expander("4.1 Missing Values (Null Handling)", expanded=True):
+            st.subheader("Missing Values Handling")
 
             # Summary
             miss = pd.DataFrame({
@@ -236,178 +238,97 @@ elif page == "B. Cleaning & Preparation":
                 "% Missing": (df.isna().mean() * 100).round(2)
             }).sort_values("Missing Count", ascending=False)
 
-            miss_active = miss[miss["Missing Count"] > 0]
-            if miss_active.empty:
-                st.success("No missing values detected.")
-            else:
-                st.dataframe(
-                    miss_active.style.bar(subset="% Missing", color="#ff9800", vmin=0, vmax=100),
-                    use_container_width=True,
-                    hide_index=True
-                )
+            st.dataframe(miss.style.bar(subset="% Missing", color="#ff9800"), use_container_width=True)
 
             action = st.radio(
                 "Choose missing values action",
-                [
-                    "Do nothing",
-                    "Drop rows with missing in selected columns",
-                    "Drop columns with > X% missing",
-                    "Fill with constant value",
-                    "Fill with statistic (mean / median / mode)",
-                    "Forward fill / Backward fill"
-                ],
+                ["Do nothing",
+                 "Drop rows with missing in selected columns",
+                 "Drop columns with > X% missing",
+                 "Fill with constant value",
+                 "Fill with statistic (mean / median / mode)",
+                 "Forward fill / Backward fill"],
                 index=0
             )
 
             if action != "Do nothing":
                 numeric_cols = df.select_dtypes(include="number").columns.tolist()
                 cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
-        
+
+                # Динамический выбор колонок
                 if action == "Fill with statistic (mean / median / mode)":
-                    method = st.selectbox("Statistic method", ["mean", "median", "mode"])
-                    if method in ["mean", "median"]:
-                        available_cols = numeric_cols
-                        help_text = "Mean и Median работают только с числовыми столбцами (int/float)"
-                    else:
-                        available_cols = df.columns.tolist()
-                        help_text = "Mode работает со всеми типами столбцов"
+                    stat_method = st.selectbox("Statistic", ["mean", "median", "mode"])
+                    available_cols = numeric_cols if stat_method in ["mean", "median"] else df.columns.tolist()
                 elif action in ["Fill with constant value", "Forward fill / Backward fill"]:
                     available_cols = df.columns.tolist()
-                    help_text = "Подходит для всех типов столбцов"
                 else:
                     available_cols = df.columns.tolist()
-                    help_text = "Подходит для всех типов столбцов"
 
-                selected_cols = st.multiselect(
-                    "Select columns to apply action to",
-                    options=available_cols,
-                    default=[],
-                    help=help_text
-                )
+                selected_cols = st.multiselect("Select columns to apply action to", available_cols)
 
-                if selected_cols:
+                if selected_cols and st.button("Apply action", type="primary"):
                     before_df = df.copy()
-
-                if selected_cols:
-                    before_df = df.copy()  # для preview
+                    rows_before = before_df.shape[0]
 
                     if action == "Drop rows with missing in selected columns":
-                        if st.button("Apply: Drop rows", type="primary"):
-                            df = df.dropna(subset=selected_cols)
-                            st.session_state.df_working = df
-                            st.session_state.transform_log.append({
-                                "step": "dropna_rows",
-                                "columns": selected_cols,
-                                "rows_before": before_df.shape[0],
-                                "rows_after": df.shape[0],
-                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                            })
-                            show_preview(before_df, df, "Drop rows")
-                            st.success(f"Dropped {before_df.shape[0] - df.shape[0]} rows")
-                            st.rerun()
+                        df = df.dropna(subset=selected_cols)
+                        affected = rows_before - df.shape[0]
+                        msg = f"Dropped {affected} rows with missing values"
 
                     elif action == "Drop columns with > X% missing":
-                        threshold = st.slider("Threshold %", 0, 100, 50, 5)
-                        if st.button("Apply: Drop columns", type="primary"):
-                            to_drop = miss[miss["% Missing"] > threshold]["Column"].tolist()
-                            df = df.drop(columns=to_drop)
-                            st.session_state.df_working = df
-                            st.session_state.transform_log.append({
-                                "step": "drop_columns",
-                                "threshold": threshold,
-                                "dropped": to_drop,
-                                "cols_before": before_df.shape[1],
-                                "cols_after": df.shape[1]
-                            })
-                            show_preview(before_df, df, "Drop columns")
-                            st.success(f"Dropped {len(to_drop)} columns")
-                            st.rerun()
+                        threshold = st.slider("Threshold (%)", 0, 100, 50)
+                        cols_to_drop = [col for col in selected_cols if (df[col].isna().mean() * 100) > threshold]
+                        df = df.drop(columns=cols_to_drop)
+                        msg = f"Dropped {len(cols_to_drop)} columns"
 
+                    elif action == "Fill with constant value":
+                        const_value = st.text_input("Constant value", value="0")
+                        df[selected_cols] = df[selected_cols].fillna(const_value)
+                        msg = f"Filled missing values with constant '{const_value}'"
 
+                    elif action == "Fill with statistic (mean / median / mode)":
+                        filled_count = 0
+                        for col in selected_cols:
+                            if stat_method == "mean":
+                                val = df[col].mean()
+                            elif stat_method == "median":
+                                val = df[col].median()
+                            else:
+                                val = df[col].mode()[0] if not df[col].mode().empty else 0
+                            before_missing = df[col].isna().sum()
+                            df[col] = df[col].fillna(val)
+                            filled_count += before_missing
+                        msg = f"Filled {filled_count} missing values using {stat_method}"
 
                     elif action == "Forward fill / Backward fill":
-                        direction = st.radio("Direction", ["ffill (forward)", "bfill (backward)"])
-                        
-                        if st.button("Apply: fill ({direction})", type="primary"):
-                            filled_total = 0
-                            
-                            for col in selected_cols:
-                                before = df[col].isna().sum()
-                                if before == 0:
-                                    continue
-                                    
-                                if direction == "ffill (forward)":
-                                    df[col] = df[col].ffill()
-                                else:
-                                    df[col] = df[col].bfill()
-                                    
-                                after = df[col].isna().sum()
-                                filled = before - after
-                                filled_total += filled
-                                
-                                st.write(f"{col}: заполнено {filled} из {before} пропусков")
-                            
-                            st.session_state.df_working = df.copy()
-                            
-                            st.session_state.transform_log.append({
-                                "step": direction.split()[0],  # "ffill" или "bfill"
-                                "columns": selected_cols.copy(),
-                                "filled_count": filled_total,
-                                "timestamp": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-                            })
-                            
-                            show_preview(before_df, df, f"{direction}")
-                            st.success(f"Заполнено {filled_total} значений методом {direction}")
-                            st.rerun()
+                        direction = st.radio("Direction", ["ffill", "bfill"])
+                        df[selected_cols] = df[selected_cols].fillna(method=direction)
+                        msg = f"Applied {direction} fill"
 
-                    
-                    elif action == "Fill with constant value":
-                        constant = st.text_input("Constant value", "0")
-                        if st.button("Apply: Fill constant", type="primary"):
-                            df[selected_cols] = df[selected_cols].fillna(constant)
-                            st.session_state.df_working = df
-                            st.session_state.transform_log.append({
-                                "step": "fill_constant",
-                                "value": constant,
-                                "columns": selected_cols,
-                                "filled": before_df[selected_cols].isna().sum().sum()
-                            })
-                            show_preview(before_df, df, "Fill constant")
-                            st.success("Filled with constant")
-                            st.rerun()
+                    st.session_state.df_working = df
 
+                    st.session_state.transform_log.append({
+                        "step": action.lower().replace(" ", "_"),
+                        "columns": selected_cols,
+                        "rows_before": rows_before,
+                        "rows_after": df.shape[0],
+                        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
 
-                    
+                    # Показываем Before/After без rerun
+                    st.markdown(f"### 📊 Preview: {action}")
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown("**Before**")
+                        st.metric("Rows", before_df.shape[0])
+                        st.dataframe(before_df.head(10), use_container_width=True)
+                    with c2:
+                        st.markdown("**After**")
+                        st.metric("Rows", df.shape[0])
+                        st.dataframe(df.head(10), use_container_width=True)
 
-                     
-        
-                   
-                    
-                    elif action == "Fill with statistic (mean / median / mode)":
-                        method = st.selectbox("Statistic", ["mean", "median", "mode"])
-                        if st.button(f"Apply: Fill {method}", type="primary"):
-                            filled_count = 0
-                            for col in selected_cols:
-                                if method == "mode":
-                                    val = df[col].mode()[0] if not df[col].mode().empty else None
-                                elif method == "mean":
-                                    val = df[col].mean()
-                                else:
-                                    val = df[col].median()
-                                if val is not None:
-                                    before_missing = df[col].isna().sum()
-                                    df[col] = df[col].fillna(val)
-                                    filled_count += before_missing
-                            st.session_state.df_working = df
-                            st.session_state.transform_log.append({
-                                "step": f"fill_{method}",
-                                "columns": selected_cols,
-                                "filled_count": filled_count,
-                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                            })
-                            show_preview(before_df, df, f"Fill {method}")
-                            st.success(f"Filled {filled_count} values")
-                            st.rerun()
+                    st.success(msg)
+                    # st.rerun()  ← УБРАЛИ, чтобы превью не исчезало
 
 
                 
