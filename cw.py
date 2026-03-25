@@ -773,8 +773,9 @@ elif page == "B. Cleaning & Preparation":
                     st.metric("Rows after", df.shape[0])
                     st.rerun()
 
-        # 4.6 Normalization / Scaling
+        
                 
+                # 4.6 Normalization / Scaling
         with st.expander("4.6 Normalization / Scaling", expanded=False):
             st.subheader("Normalization and Scaling")
 
@@ -796,23 +797,22 @@ elif page == "B. Cleaning & Preparation":
 
                 if cols_to_scale and st.button("Apply scaling", type="primary"):
                     before_df = df.copy()
-                    rows_before = before_df.shape[0]
 
+                    # Применяем scaling
                     if scaling_method == "Min-Max Scaling (0 to 1)":
                         for col in cols_to_scale:
                             min_val = df[col].min()
                             max_val = df[col].max()
                             if max_val > min_val:
                                 df[col] = (df[col] - min_val) / (max_val - min_val)
-                        st.success(f"Min-Max scaling applied to {len(cols_to_scale)} columns (values now between 0 and 1)")
-
-                    else:  # Z-Score Standardization
+                        success_msg = f"Min-Max scaling applied to {len(cols_to_scale)} columns"
+                    else:
                         for col in cols_to_scale:
                             mean = df[col].mean()
                             std = df[col].std()
                             if std > 0:
                                 df[col] = (df[col] - mean) / std
-                        st.success(f"Z-Score standardization applied to {len(cols_to_scale)} columns (mean ≈ 0, std ≈ 1)")
+                        success_msg = f"Z-Score standardization applied to {len(cols_to_scale)} columns"
 
                     st.session_state.df_working = df
 
@@ -820,13 +820,26 @@ elif page == "B. Cleaning & Preparation":
                         "step": "scaling",
                         "method": scaling_method,
                         "columns": cols_to_scale,
-                        "rows_before": rows_before,
+                        "rows_before": before_df.shape[0],
                         "rows_after": df.shape[0],
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
 
-                    st.metric("Rows before", rows_before)
-                    st.metric("Rows after", df.shape[0])
+                    # ==================== BEFORE / AFTER STATS ====================
+                    st.markdown("### 📊 Before / After Statistics")
+
+                    stats_before = before_df[cols_to_scale].describe().round(4)
+                    stats_after = df[cols_to_scale].describe().round(4)
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Before Scaling**")
+                        st.dataframe(stats_before, use_container_width=True)
+                    with col2:
+                        st.markdown("**After Scaling**")
+                        st.dataframe(stats_after, use_container_width=True)
+
+                    st.success(success_msg)
                     st.rerun()
 
        
