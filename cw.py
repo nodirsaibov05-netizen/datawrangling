@@ -829,7 +829,9 @@ elif page == "B. Cleaning & Preparation":
                     st.metric("Rows after", df.shape[0])
                     st.rerun()
 
+       
         # 4.7 Column Operations
+               
         with st.expander("4.7 Column Operations", expanded=False):
             st.subheader("Column Operations")
 
@@ -846,8 +848,8 @@ elif page == "B. Cleaning & Preparation":
                 rename_dict = {}
                 for col in df.columns:
                     new_name = st.text_input(f"Rename '{col}' to:", value=col, key=f"rename_{col}")
-                    if new_name != col:
-                        rename_dict[col] = new_name
+                    if new_name != col and new_name.strip() != "":
+                        rename_dict[col] = new_name.strip()
                 
                 if rename_dict and st.button("Apply renaming", type="primary"):
                     before_df = df.copy()
@@ -878,64 +880,44 @@ elif page == "B. Cleaning & Preparation":
                     st.success(f"Dropped {len(cols_to_drop)} columns")
                     st.rerun()
 
-                        # 3. Create new column with formula (универсальная версия)
+            # 3. Create new column with formula
             elif operation == "Create new column (formula)":
                 st.markdown("**Create new column using formula**")
-
-                new_col_name = st.text_input("New column name", value="new_feature")
+                
+                new_col_name = st.text_input("New column name", value="new_column")
 
                 formula = st.text_input(
-                    "Enter formula",
-                    value="`Engine HP` / 100",
-                    help="""Поддерживаются:
-:
-`MSRP` * 0.8
-`Engine HP` / `Engine Cylinders`
-log(`Popularity` + 1)
-`City mpg` - `Highway MPG`"""
+                    "Formula (use column names)",
+                    value="colA / colB",
+                    help="Examples:\ncolA + colB\ncolA * 2\nlog(colA)\ncolA - colB.mean()"
                 )
-
+                
                 if st.button("Create new column", type="primary"):
                     try:
                         before_df = df.copy()
-
-                        # Универсальный способ: заменяем пробелы на подчёркивания временно
-                        temp_df = df.copy()
-                        temp_col_map = {col: col.replace(" ", "_").replace("-", "_") for col in df.columns}
-                        temp_df = temp_df.rename(columns=temp_col_map)
-
-                        # Заменяем в формуле названия колонок
-                        safe_formula = formula
-                        for original, safe in temp_col_map.items():
-                            safe_formula = safe_formula.replace(f"`{original}`", safe)
-
-                        # Вычисляем формулу
-                        temp_df[new_col_name] = temp_df.eval(safe_formula, engine='python')
-
-                        # Возвращаем оригинальные названия колонок
-                        df = temp_df.rename(columns={v: k for k, v in temp_col_map.items()})
-
+                        df[new_col_name] = df.eval(formula)
+                        
                         st.session_state.df_working = df
-
                         st.session_state.transform_log.append({
                             "step": "create_new_column",
                             "column": new_col_name,
                             "formula": formula,
                             "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
-
-                        st.success(f"✅ Successfully created new column: **{new_col_name}**")
+                        st.success(f"Created new column '{new_col_name}'")
                         st.rerun()
-
                     except Exception as e:
                         st.error(f"Formula error: {str(e)}")
-                        st.info("💡 Tip: Use backticks around column names with spaces, e.g. `Engine HP` / 100")
+                        st.info("Tip: Use column names exactly as they appear. For columns with spaces use backticks ` `.")
 
-            # 4. Binning (разбиение на категории)
+            # 4. Binning numeric column
             elif operation == "Binning numeric column":
                 st.markdown("**Binning numeric column**")
-                num_col = st.selectbox("Select numeric column to bin", numeric_cols)
-                bin_method = st.radio("Binning method", ["Equal width bins", "Quantile bins (equal frequency)"])
+                
+                num_col = st.selectbox("Select numeric column to bin", 
+                                     options=df.select_dtypes(include=["number"]).columns.tolist())
+                
+                bin_method = st.radio("Binning method", ["Equal width bins", "Quantile bins"])
                 
                 if bin_method == "Equal width bins":
                     n_bins = st.slider("Number of bins", 2, 20, 5)
