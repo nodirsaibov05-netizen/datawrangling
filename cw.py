@@ -228,6 +228,7 @@ elif page == "B. Cleaning & Preparation":
         
                 
                 # 4.1 Missing Values (Null Handling)
+                # 4.1 Missing Values (Null Handling)
         with st.expander("4.1 Missing Values (Null Handling)", expanded=True):
             st.subheader("Missing Values Handling")
 
@@ -253,18 +254,24 @@ elif page == "B. Cleaning & Preparation":
 
             if action != "Do nothing":
                 numeric_cols = df.select_dtypes(include="number").columns.tolist()
-                cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
                 # Динамический выбор колонок
                 if action == "Fill with statistic (mean / median / mode)":
                     stat_method = st.selectbox("Statistic", ["mean", "median", "mode"])
                     available_cols = numeric_cols if stat_method in ["mean", "median"] else df.columns.tolist()
-                elif action in ["Fill with constant value", "Forward fill / Backward fill"]:
-                    available_cols = df.columns.tolist()
                 else:
                     available_cols = df.columns.tolist()
 
                 selected_cols = st.multiselect("Select columns to apply action to", available_cols)
+
+                # Threshold только для Drop columns
+                threshold = None
+                if action == "Drop columns with > X% missing":
+                    threshold = st.slider("Threshold (%) - drop columns with missing above this value", 
+                                        min_value=0, 
+                                        max_value=100, 
+                                        value=50, 
+                                        step=1)
 
                 if selected_cols and st.button("Apply action", type="primary"):
                     before_df = df.copy()
@@ -276,13 +283,16 @@ elif page == "B. Cleaning & Preparation":
                         msg = f"Dropped {affected} rows with missing values"
 
                     elif action == "Drop columns with > X% missing":
-                        threshold = st.slider("Threshold (%)", 0, 100, 50)
                         cols_to_drop = [col for col in selected_cols if (df[col].isna().mean() * 100) > threshold]
                         df = df.drop(columns=cols_to_drop)
-                        msg = f"Dropped {len(cols_to_drop)} columns"
+                        msg = f"Dropped {len(cols_to_drop)} columns with > {threshold}% missing"
 
                     elif action == "Fill with constant value":
                         const_value = st.text_input("Constant value", value="0")
+                        try:
+                            const_value = float(const_value) if const_value.replace('.','').replace('-','').isdigit() else const_value
+                        except:
+                            pass
                         df[selected_cols] = df[selected_cols].fillna(const_value)
                         msg = f"Filled missing values with constant '{const_value}'"
 
@@ -301,21 +311,22 @@ elif page == "B. Cleaning & Preparation":
                         msg = f"Filled {filled_count} missing values using {stat_method}"
 
                     elif action == "Forward fill / Backward fill":
-                        direction = st.radio("Direction", ["ffill", "bfill"])
-                        df[selected_cols] = df[selected_cols].fillna(method=direction)
-                        msg = f"Applied {direction} fill"
+                        direction = st.radio("Direction", ["ffill (forward)", "bfill (backward)"])
+                        method = direction.split()[0]
+                        df[selected_cols] = df[selected_cols].fillna(method=method)
+                        msg = f"Applied {method} fill"
 
                     st.session_state.df_working = df
 
                     st.session_state.transform_log.append({
-                        "step": action.lower().replace(" ", "_"),
+                        "step": action.lower().replace(" ", "_").replace(">", "above"),
                         "columns": selected_cols,
                         "rows_before": rows_before,
                         "rows_after": df.shape[0],
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
 
-                    # Показываем Before/After без rerun
+                    # Простой Before/After preview
                     st.markdown(f"### 📊 Preview: {action}")
                     c1, c2 = st.columns(2)
                     with c1:
@@ -328,7 +339,6 @@ elif page == "B. Cleaning & Preparation":
                         st.dataframe(df.head(10), use_container_width=True)
 
                     st.success(msg)
-                    # st.rerun()  ← УБРАЛИ, чтобы превью не исчезало
 
 
                 
