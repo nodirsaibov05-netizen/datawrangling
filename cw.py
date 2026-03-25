@@ -984,13 +984,6 @@ elif page == "B. Cleaning & Preparation":
 elif page == "C. Visualization Builder":
     st.title("📊 C. Visualization Builder")
 
-    
-        df_source = st.session_state.df_working.copy()
-        filename = st.session_state.file_name
-
-        st.write(f"**File:** {filename}")
-        st.write(f"**Shape:** {df_source.shape[0]:,} rows × {df_source.shape[1]} columns")
-        st.divider()
 
         # ==================== КОД НАПАРНИКА (Filter + Charts) ====================
         # FILTER SECTION
