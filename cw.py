@@ -332,11 +332,11 @@ elif page == "B. Cleaning & Preparation":
                     with c1:
                         st.markdown("**Before**")
                         st.metric("Rows", before_df.shape[0])
-                        st.dataframe(before_df.head(10), use_container_width=True)
+                        st.dataframe(before_df.head(25), use_container_width=True)
                     with c2:
                         st.markdown("**After**")
                         st.metric("Rows", df.shape[0])
-                        st.dataframe(df.head(10), use_container_width=True)
+                        st.dataframe(df.head(25), use_container_width=True)
 
                     st.success(msg)
 
